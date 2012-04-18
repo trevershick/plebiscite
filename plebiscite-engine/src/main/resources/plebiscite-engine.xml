@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+
+	<bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer"/>
+	<bean id="awsCredentials" class="com.amazonaws.auth.BasicAWSCredentials">
+		<constructor-arg>
+			<value type="java.lang.String">${accessKey}</value>
+		</constructor-arg>
+		<constructor-arg>
+			<value type="java.lang.String">${secretKey}</value>
+		</constructor-arg>
+	</bean>
+
+	<bean id="dynamoDb" class="com.amazonaws.services.dynamodb.AmazonDynamoDBClient">
+		<constructor-arg>
+			<ref local="awsCredentials"/>
+		</constructor-arg>
+	</bean>
+
+	<bean id="dataService" class="org.trevershick.plebiscite.engine.impl.DynamoDbDataService"
+		p:db-ref="dynamoDb"/>
+</beans>
