@@ -59,5 +59,6 @@
 				</fieldset>
 			</g:form>
 		</div>
+		<disqus:comments bean="${ballotInstance}" />
 	</body>
 </html>

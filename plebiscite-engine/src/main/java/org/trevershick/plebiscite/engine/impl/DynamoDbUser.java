@@ -6,17 +6,19 @@ import org.trevershick.plebiscite.model.UserStatus;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBAttribute;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBHashKey;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBIgnore;
+import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMarshalling;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBTable;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBVersionAttribute;
 import com.google.common.base.Preconditions;
 @DynamoDBTable(tableName="Users")
 public class DynamoDbUser implements User {
 	String emailAddress;
-	boolean isRegistered;
+	boolean registered;
 	String slug;
 	UserStatus userStatus = UserStatus.Active;
 	boolean servicesEnabled;
 	private Integer version;
+	private boolean admin;
 	
 	
     @DynamoDBVersionAttribute(attributeName="Version")
@@ -37,23 +39,6 @@ public class DynamoDbUser implements User {
 		this.emailAddress = value;
 	}
 
-	@DynamoDBAttribute(attributeName="services")
-	public String getServicesEnabled() {
-		return String.valueOf(servicesEnabled);
-	}
-	public void setServicesEnabled(String value) {
-		this.servicesEnabled = Boolean.valueOf(value);
-	}
-	
-
-	@DynamoDBAttribute(attributeName="registered")
-	public String getRegistered() {
-		return String.valueOf(isRegistered);
-	}
-	public void setRegistered(String registered) {
-		this.isRegistered = Boolean.valueOf(registered);
-	}
-	
 	
 	
 	@DynamoDBAttribute(attributeName="slug")
@@ -79,12 +64,13 @@ public class DynamoDbUser implements User {
 	
 	
 	
-	@DynamoDBIgnore
+	@DynamoDBMarshalling(marshallerClass=YNMarshaller.class)
+	@DynamoDBAttribute(attributeName="Registered")
 	public boolean isRegistered() {
-		return isRegistered;
+		return registered;
 	}
 	public void setRegistered(boolean value) {
-		this.isRegistered = value;
+		this.registered = value;
 	}
 
 	@DynamoDBIgnore
@@ -96,11 +82,25 @@ public class DynamoDbUser implements User {
 		this.userStatus = us;
 	}
 
-	@DynamoDBIgnore
+	@DynamoDBMarshalling(marshallerClass=YNMarshaller.class)
+	@DynamoDBAttribute(attributeName="ServicesEnabled")
 	public boolean isServicesEnabled() {
 		return servicesEnabled;
 	}
 	public void setServicesEnabled(boolean value) {
 		this.servicesEnabled = value;
 	}
+	
+	@DynamoDBMarshalling(marshallerClass=YNMarshaller.class)
+	@DynamoDBAttribute(attributeName="AdminUser")
+	public boolean isAdmin() {
+		return admin;
+	}
+	public void setAdmin(boolean value) {
+		this.admin = value;
+	}
+	public boolean canCreateBallot() {
+		return isAdmin() || isRegistered();
+	}
+
 }

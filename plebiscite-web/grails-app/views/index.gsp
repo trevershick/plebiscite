@@ -41,7 +41,7 @@
 			}
 
 			#page-body {
-				margin: 2em 1em 1.25em 18em;
+				margin: 2em 1em 1.25em 2em;
 			}
 
 			h2 {
@@ -117,22 +117,18 @@
 		</div>
 		 -->
 		<div id="page-body" role="main">
-			<h1>Welcome to Grails</h1>
-			<p>Congratulations, you have successfully started your first Grails application! At the moment
-			   this is the default page, feel free to modify it to either redirect to a controller or display whatever
-			   content you may choose. Below is a list of controllers that are currently deployed in this application,
-			   click on each to execute its default action:</p>
+			<h1>Welcome to <a href="http://www.google.com/search?q=define:+plebiscite">Plebiscite</a></h1>
+			<p>A persistent difficulty with getting things done in an organization is gaining consensus during a process. Workflow processes can come to a grinding halt trying to gain assent, the default mode of operation often becoming “assent by silence”. Assent can also be forgotten, so a person who agrees today may deny his/her assent. These issues are quite commonplace, especially in an operations environment of a large company.
+			</p>
+			<p>
+			This is why Plebiscite was created.  Plebiscite creates a central location for both humans and systems to interact with.  Setup a ballot and
+			go.  Plebiscite will notify participants and get a response from them.  Once enough responses have been returned, you'll be notified of the 
+			results.
+			</p>
 
-			<div id="controller-list" role="navigation">
-				<h2>Available Controllers:</h2>
-				<ul>
-					<g:link controller="ballot" action="list">Ballots</g:link>
-					<!--<g:each var="c" in="${grailsApplication.controllerClasses.sort { it.fullName } }">
-						<li class="controller"><g:link controller="${c.logicalPropertyName}">${c.fullName}</g:link></li>
-					</g:each>
-					-->
-				</ul>
-			</div>
+
+		 </div>
+
 		</div>
 	</body>
 </html>
