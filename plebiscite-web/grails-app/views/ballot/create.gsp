@@ -3,23 +3,24 @@
 <html>
 	<head>
 		<meta name="layout" content="main">
-		<g:set var="entityName" value="${message(code: 'ballot2.label', default: 'Ballot2')}" />
+		<g:set var="entityName" value="${message(code: 'ballot.label', default: 'Ballot2')}" />
 		<title><g:message code="default.create.label" args="[entityName]" /></title>
 	</head>
 	<body>
-		<a href="#create-ballot2" class="skip" tabindex="-1"><g:message code="default.link.skip.label" default="Skip to content&hellip;"/></a>
+		<a href="#create-ballot" class="skip" tabindex="-1"><g:message code="default.link.skip.label" default="Skip to content&hellip;"/></a>
 		<div class="nav" role="navigation">
 			<ul>
 				<li><a class="home" href="${createLink(uri: '/')}"><g:message code="default.home.label"/></a></li>
 				<li><g:link class="list" action="list"><g:message code="default.list.label" args="[entityName]" /></g:link></li>
 			</ul>
 		</div>
-		<div id="create-ballot2" class="content scaffold-create" role="main">
+		<div id="create-ballot" class="content scaffold-create" role="main">
+			<g:render template="/errors"/>
 			<h1><g:message code="default.create.label" args="[entityName]" /></h1>
-			<g:render template="/errors"/>			
-			<g:hasErrors bean="${ballot2Instance}">
+
+			<g:hasErrors bean="${ballotInstance}">
 			<ul class="errors" role="alert">
-				<g:eachError bean="${ballot2Instance}" var="error">
+				<g:eachError bean="${ballotInstance}" var="error">
 				<li <g:if test="${error in org.springframework.validation.FieldError}">data-field-id="${error.field}"</g:if>><g:message error="${error}"/></li>
 				</g:eachError>
 			</ul>

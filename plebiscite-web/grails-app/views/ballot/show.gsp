@@ -17,10 +17,8 @@
 			</ul>
 		</div>
 		<div id="show-ballot" class="content scaffold-show" role="main">
+			<g:render template="/errors"/>
 			<h1><g:message code="default.show.label" args="[entityName]" /></h1>
-			<g:if test="${flash.message}">
-			<div class="message" role="status">${flash.message}</div>
-			</g:if>
 			<ol class="property-list ballot">
 			
 				<g:if test="${ballotInstance?.title}">

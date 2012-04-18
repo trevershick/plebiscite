@@ -18,8 +18,9 @@
 			</ul>
 		</div>
 		<div id="edit-ballot" class="content scaffold-edit" role="main">
+			<g:render template="/errors"/>
 			<h1><g:message code="default.edit.label" args="[entityName]" /></h1>
-			<g:render template="/errors"/>			
+
 
 			<g:hasErrors bean="${ballotInstance}">
 			<ul class="errors" role="alert">

@@ -62,7 +62,7 @@ class BallotController {
             return
         }
 
-		flash.message = message(code: 'default.created.message', args: [message(code: 'ballot.label', default: 'Ballot2'), ballotInstance.id])
+		flash.message = message(code: 'default.created.message', args: [message(code: 'ballot.label', default: 'Ballot'), ballotInstance.id])
         redirect(action: "show", id: ballotInstance.id)
     }
 
@@ -102,7 +102,7 @@ class BallotController {
 //            def version = params.version.toLong()
 //            if (ballotInstance.version > version) {
 //                ballotInstance.errors.rejectValue("version", "default.optimistic.locking.failure",
-//                          [message(code: 'ballot2.label', default: 'Ballot2')] as Object[],
+//                          [message(code: 'ballot.label', default: 'Ballot')] as Object[],
 //                          "Another user has updated this Ballot2 while you were editing")
 //                render(view: "edit", model: [ballotInstance: ballotInstance])
 //                return
@@ -121,20 +121,20 @@ class BallotController {
     }
 
     def delete() {
-        def ballotInstance = Ballot2.get(params.id)
+        def ballotInstance = dataService.getBallot(params.id);
         if (!ballotInstance) {
-			flash.message = message(code: 'default.not.found.message', args: [message(code: 'ballot2.label', default: 'Ballot2'), params.id])
+			flash.message = message(code: 'default.not.found.message', args: [message(code: 'ballot.label', default: 'Ballot'), params.id])
             redirect(action: "list")
             return
         }
 
         try {
-            ballotInstance.delete(flush: true)
-			flash.message = message(code: 'default.deleted.message', args: [message(code: 'ballot2.label', default: 'Ballot2'), params.id])
+            dataService.delete(ballotInstance)
+			flash.message = message(code: 'default.deleted.message', args: [message(code: 'ballot.label', default: 'Ballot'), params.id])
             redirect(action: "list")
         }
         catch (DataIntegrityViolationException e) {
-			flash.message = message(code: 'default.not.deleted.message', args: [message(code: 'ballot2.label', default: 'Ballot2'), params.id])
+			flash.message = message(code: 'default.not.deleted.message', args: [message(code: 'ballot.label', default: 'Ballot'), params.id])
             redirect(action: "show", id: params.id)
         }
     }
