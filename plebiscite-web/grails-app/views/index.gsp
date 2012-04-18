@@ -81,7 +81,20 @@
 		</style>
 	</head>
 	<body>
-		<a href="#page-body" class="skip"><g:message code="default.link.skip.label" default="Skip to content&hellip;"/></a>
+		<a href="#list-ballot" class="skip" tabindex="-1"><g:message code="default.link.skip.label" default="Skip to content&hellip;"/></a>
+		<div class="nav" role="navigation">
+			<ul>
+				<li><a class="home" href="${createLink(uri: '/')}"><g:message code="default.home.label"/></a></li>
+				<li><g:link controller="ballot" class="list" action="list">Ballots</g:link></li>
+				<g:if test="${ session.user }">
+				<li><g:link controller="user" action="logout" class="logout"><g:message code="default.logout.label" default="Logout"/></g:link></li>
+				</g:if>
+				<g:if test="${ !session.user }">
+				<li><g:link controller="user" action="login"><g:message code="default.login.label" default="Login" /></g:link></li>
+				</g:if>
+			</ul>
+		</div>
+		<!-- 
 		<div id="status" role="complementary">
 			<h1>Application Status</h1>
 			<ul>
@@ -102,6 +115,7 @@
 				</g:each>
 			</ul>
 		</div>
+		 -->
 		<div id="page-body" role="main">
 			<h1>Welcome to Grails</h1>
 			<p>Congratulations, you have successfully started your first Grails application! At the moment
@@ -112,9 +126,11 @@
 			<div id="controller-list" role="navigation">
 				<h2>Available Controllers:</h2>
 				<ul>
-					<g:each var="c" in="${grailsApplication.controllerClasses.sort { it.fullName } }">
+					<g:link controller="ballot" action="list">Ballots</g:link>
+					<!--<g:each var="c" in="${grailsApplication.controllerClasses.sort { it.fullName } }">
 						<li class="controller"><g:link controller="${c.logicalPropertyName}">${c.fullName}</g:link></li>
 					</g:each>
+					-->
 				</ul>
 			</div>
 		</div>

@@ -3,14 +3,24 @@ package plebiscite.web
 import org.springframework.dao.DataIntegrityViolationException
 import org.trevershick.plebiscite.engine.BallotCriteria;
 import org.trevershick.plebiscite.engine.DataService;
-import org.trevershick.plebiscite.engine.State;
 import org.trevershick.plebiscite.model.Ballot;
 
 import com.google.common.base.Predicate;
 
 class BallotController {
-
     static allowedMethods = [save: "POST", update: "POST", delete: "POST"]
+	def beforeInterceptor = [action:this.&checkUser]
+	
+	def checkUser() {
+		if(!session.user) {
+			// i.e. user not logged in
+			redirect(controller:'user',action:'login')
+			return false
+		}
+	}
+	
+	
+	
 	DataService dataService;
 	
     def index() {
@@ -52,7 +62,7 @@ class BallotController {
             return
         }
 
-		flash.message = message(code: 'default.created.message', args: [message(code: 'ballot2.label', default: 'Ballot2'), ballotInstance.id])
+		flash.message = message(code: 'default.created.message', args: [message(code: 'ballot.label', default: 'Ballot2'), ballotInstance.id])
         redirect(action: "show", id: ballotInstance.id)
     }
 

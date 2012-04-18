@@ -1,0 +1,5 @@
+.classpath
+.settings/
+stacktrace.log
+.project
+run.sh

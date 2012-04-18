@@ -16,9 +16,7 @@
 		</div>
 		<div id="create-ballot2" class="content scaffold-create" role="main">
 			<h1><g:message code="default.create.label" args="[entityName]" /></h1>
-			<g:if test="${flash.message}">
-			<div class="message" role="status">${flash.message}</div>
-			</g:if>
+			<g:render template="/errors"/>			
 			<g:hasErrors bean="${ballot2Instance}">
 			<ul class="errors" role="alert">
 				<g:eachError bean="${ballot2Instance}" var="error">

@@ -1,6 +1,7 @@
 package org.trevershick.plebiscite.engine;
 
 import org.trevershick.plebiscite.model.Ballot;
+import org.trevershick.plebiscite.model.User;
 
 import com.google.common.base.Predicate;
 
@@ -14,16 +15,24 @@ public interface DataService {
 	 * @param callback
 	 */
 	void ballots(BallotCriteria criteria, Predicate<Ballot> callback);
+
+	void cancel(Ballot ballot);
+	void deactivate(User user);
+
 	
-	Ballot getBallot(String id);
 	void delete(Ballot ballot);
+	void delete(User ballot);
 	Ballot save(Ballot ballot);
+	User save(User ballot);
 	
 	/**
 	 * basic factory method, does NOT persist a ballot
 	 * @return
 	 */
-	Ballot create();
+	Ballot createBallot();
+	User createUser(String emailAddress);
 	
+	Ballot getBallot(String id);
+	User getUser(String id);
 	
 }
