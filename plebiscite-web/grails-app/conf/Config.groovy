@@ -16,7 +16,7 @@
 // https://github.com/edvinasbartkus/grails-disqus
 grails.plugins.disqus.shortname = "trevershick-plebiscite"
 
-grails.project.groupId = appName // change this to alter the default package name and Maven publishing destination
+grails.project.groupId = "org.trevershick.plebiscite" // change this to alter the default package name and Maven publishing destination
 grails.mime.file.extensions = true // enables the parsing of file extensions from URLs into the request format
 grails.mime.use.accept.header = false
 grails.mime.types = [ html: ['text/html','application/xhtml+xml'],
@@ -62,7 +62,7 @@ grails.web.disable.multipart=false
 grails.exceptionresolver.params.exclude = ['password']
 
 // enable query caching by default
-grails.hibernate.cache.queries = true
+// grails.hibernate.cache.queries = true
 
 // set per-environment serverURL stem for creating absolute links
 environments {
@@ -91,8 +91,6 @@ log4j = {
            'org.codehaus.groovy.grails.web.mapping', // URL mapping
            'org.codehaus.groovy.grails.commons', // core / classloading
            'org.codehaus.groovy.grails.plugins', // plugins
-           'org.codehaus.groovy.grails.orm.hibernate', // hibernate integration
            'org.springframework',
-           'org.hibernate',
            'net.sf.ehcache.hibernate'
 }
