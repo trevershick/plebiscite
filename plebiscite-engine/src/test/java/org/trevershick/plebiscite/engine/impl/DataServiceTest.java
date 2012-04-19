@@ -1,6 +1,6 @@
 package org.trevershick.plebiscite.engine.impl;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -34,8 +34,10 @@ public class DataServiceTest {
 
 	@BeforeClass
 	public static void setup() {
-		String accessKey = System.getProperty("accessKey");
-		String secretKey = System.getProperty("secretKey");
+		String accessKey = System.getProperty("AWS_ACCESS_KEY_ID");
+		String secretKey = System.getProperty("AWS_SECRET_KEY");
+		assertTrue("Got the access key", accessKey != null && accessKey.trim().length() > 0);
+		assertTrue("Got the secret key", secretKey != null && secretKey.trim().length() > 0);
 		BasicAWSCredentials awsCredentials = new BasicAWSCredentials(accessKey, secretKey);
 		env = new PlebisciteEnvironment();
 //		env.setQualifier("FUNC");
