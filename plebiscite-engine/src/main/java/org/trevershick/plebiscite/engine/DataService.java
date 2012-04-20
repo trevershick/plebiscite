@@ -1,7 +1,10 @@
 package org.trevershick.plebiscite.engine;
 
 import org.trevershick.plebiscite.model.Ballot;
+import org.trevershick.plebiscite.model.BallotState;
 import org.trevershick.plebiscite.model.User;
+import org.trevershick.plebiscite.model.UserStatus;
+import org.trevershick.plebiscite.model.Vote;
 
 import com.google.common.base.Predicate;
 
@@ -15,9 +18,8 @@ public interface DataService {
 	 * @param callback
 	 */
 	void ballots(BallotCriteria criteria, Predicate<Ballot> callback);
-
-	void cancel(Ballot ballot);
-	void deactivate(User user);
+	void users(UserCriteria criteria, Predicate<User> users);
+	void votes(Ballot ballot, Predicate<Vote> vote);
 
 	
 	void delete(Ballot ballot);
@@ -34,5 +36,9 @@ public interface DataService {
 	
 	Ballot getBallot(String id);
 	User getUser(String id);
+	void updateState(Ballot u, BallotState cancelled);
+	void updateState(User user, UserStatus inactive);
+	void updatePassword(User user, String password);
+	boolean credentialsMatch(User user, String credentials);
 	
 }

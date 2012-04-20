@@ -1,24 +1,35 @@
 package org.trevershick.plebiscite.engine.impl;
 
+import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Method;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Formatter;
+import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Set;
 
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.util.Assert;
 import org.trevershick.plebiscite.engine.BallotCriteria;
 import org.trevershick.plebiscite.engine.DataService;
+import org.trevershick.plebiscite.engine.UserCriteria;
 import org.trevershick.plebiscite.model.Ballot;
 import org.trevershick.plebiscite.model.BallotState;
 import org.trevershick.plebiscite.model.User;
 import org.trevershick.plebiscite.model.UserStatus;
+import org.trevershick.plebiscite.model.Vote;
 
 import com.amazonaws.services.dynamodb.AmazonDynamoDB;
+import com.amazonaws.services.dynamodb.datamodeling.DynamoDBHashKey;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapper;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapperConfig;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapperConfig.TableNameOverride;
+import com.amazonaws.services.dynamodb.datamodeling.DynamoDBQueryExpression;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBScanExpression;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBTable;
+import com.amazonaws.services.dynamodb.datamodeling.PaginatedList;
+import com.amazonaws.services.dynamodb.datamodeling.PaginatedQueryList;
 import com.amazonaws.services.dynamodb.datamodeling.PaginatedScanList;
 import com.amazonaws.services.dynamodb.model.AttributeValue;
 import com.amazonaws.services.dynamodb.model.ComparisonOperator;
@@ -27,10 +38,13 @@ import com.amazonaws.services.dynamodb.model.DeleteItemRequest;
 import com.amazonaws.services.dynamodb.model.Key;
 import com.amazonaws.services.dynamodb.model.PutItemRequest;
 import com.google.common.base.Function;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 
 public class DynamoDbDataService implements DataService,InitializingBean {
 	AmazonDynamoDB db;
@@ -66,33 +80,7 @@ public class DynamoDbDataService implements DataService,InitializingBean {
 	}
 	
 	
-	public void ballots(BallotCriteria criteria, Predicate<Ballot> callback) {
-		Preconditions.checkArgument(criteria != null, "criteria must not be null");
-		DynamoDBScanExpression scanexp = new DynamoDBScanExpression();
 
-				
-		in(scanexp, "State", criteria.getStates(), new Function<BallotState,String>(){
-			public String apply(BallotState input) {
-				return input.name();
-			}
-		});
-		
-
-		if (scanexp.getScanFilter() == null || scanexp.getScanFilter().isEmpty()) {
-			scanexp.addFilterCondition("Id", new Condition()
-			.withComparisonOperator(ComparisonOperator.NOT_NULL));
-		}
-
-		
-		PaginatedScanList<DynamoDbBallot> list = new DynamoDBMapper(db,configFor(DynamoDbBallot.class)).scan(
-				DynamoDbBallot.class, scanexp);
-		
-		try {
-			Iterables.find(list, Predicates.not(callback));
-		} catch (NoSuchElementException nsee) {
-			// ignore, stupid AWS API
-		}
-	}
 
 	private <T> void in(DynamoDBScanExpression s, String attributeName, final Set<T> states,
 			final Function<T, String> function) {
@@ -138,12 +126,12 @@ public class DynamoDbDataService implements DataService,InitializingBean {
 		return mapper.load(DynamoDbBallot.class, id);
 	}
 	
-	public void cancel(Ballot b) {
-		Preconditions.checkArgument(b != null, "ballot cannot be null");
-		DynamoDbBallot db = (DynamoDbBallot) b;
-		db.setState(BallotState.Cancelled);
-		save(db);
-	}
+//	public void cancel(Ballot b) {
+//		Preconditions.checkArgument(b != null, "ballot cannot be null");
+//		DynamoDbBallot db = (DynamoDbBallot) b;
+//		db.setState(BallotState.Cancelled);
+//		save(db);
+//	}
 
 
 	public User save(User user) {
@@ -160,14 +148,13 @@ public class DynamoDbDataService implements DataService,InitializingBean {
 	}
 
 
-
-
-	public void deactivate(User user) {
-		Preconditions.checkArgument(user != null, "ballot cannot be null");
-		DynamoDbUser dbu = (DynamoDbUser) user;
-		dbu.setUserStatus(UserStatus.Inactive);
-		save(user);
-	}
+//	public void deactivate(User user) {
+//		Preconditions.checkArgument(user != null, "ballot cannot be null");
+//		DynamoDbUser dbu = (DynamoDbUser) user;
+//		dbu.setUserStatus(UserStatus.Inactive);
+//		save(user);
+//	}
+	
 	public void delete(Ballot b) {
 		Preconditions.checkArgument(b != null, "ballot cannot be null");
 		new DynamoDBMapper(db).delete(b,configFor(DynamoDbBallot.class));
@@ -186,6 +173,7 @@ public class DynamoDbDataService implements DataService,InitializingBean {
 		if (user == null) {
 			user = new DynamoDbUser();
 			user.setEmailAddress(emailAddress);
+			save(user);
 		}
 		return user;
 	}
@@ -194,5 +182,126 @@ public class DynamoDbDataService implements DataService,InitializingBean {
 		Assert.notNull(env,"env must be provided");
 		Assert.notNull(db, "db has not been set");
 	}
+	
+	public void users(UserCriteria criteria, Predicate<User> users) {
+		Preconditions.checkArgument(criteria != null, "criteria must not be null");
+		DynamoDBScanExpression scanexp = new DynamoDBScanExpression();
+		PaginatedScanList<DynamoDbUser> list = new DynamoDBMapper(db,configFor(DynamoDbUser.class)).scan(
+				DynamoDbUser.class, scanexp);
+		applyWhileTrue(users, list);
+	}
 
+	
+	public void ballots(BallotCriteria criteria, Predicate<Ballot> callback) {
+		Preconditions.checkArgument(criteria != null, "criteria must not be null");
+		DynamoDBScanExpression scanexp = new DynamoDBScanExpression();
+
+				
+		in(scanexp, "State", criteria.getStates(), new Function<BallotState,String>(){
+			public String apply(BallotState input) {
+				return input.name();
+			}
+		});
+		
+
+//		if (scanexp.getScanFilter() == null || scanexp.getScanFilter().isEmpty()) {
+//			scanexp.addFilterCondition(
+//					hashKeyAttributeName(DynamoDbUser.class), 
+//					new Condition().withComparisonOperator(ComparisonOperator.NOT_NULL));
+//		}
+
+		
+		PaginatedScanList<DynamoDbBallot> list = new DynamoDBMapper(db,configFor(DynamoDbBallot.class)).scan(
+				DynamoDbBallot.class, scanexp);
+		
+		applyWhileTrue(callback, list);
+	}
+	
+	
+	
+	public void users(Predicate<User> users) {
+		DynamoDBScanExpression scanexp = new DynamoDBScanExpression();
+		
+//		scanexp.addFilterCondition(
+//				hashKeyAttributeName(DynamoDbUser.class), 
+//				new Condition().withComparisonOperator(ComparisonOperator.NOT_NULL));
+		
+		PaginatedScanList<DynamoDbUser> list = new DynamoDBMapper(db,configFor(DynamoDbUser.class)).scan(
+				DynamoDbUser.class, scanexp);
+		applyWhileTrue(users, list);
+	}
+	
+	
+	public void votes(Ballot ballot, Predicate<Vote> vote) {
+		DynamoDBQueryExpression queryexp = new DynamoDBQueryExpression(new AttributeValue(ballot.getId()));
+		PaginatedQueryList<DynamoDbVote> query = new DynamoDBMapper(db, configFor(DynamoDbVote.class)).query(DynamoDbVote.class, queryexp);
+		applyWhileTrue(vote, query);
+	}
+
+	public void updateState(Ballot u, BallotState cancelled) {
+		DynamoDbBallot b = (DynamoDbBallot) getBallot(u.getId());
+		b.setState(cancelled);
+		save(b);
+	}
+	
+	public void updateState(User user, UserStatus inactive) {
+		DynamoDbUser u = (DynamoDbUser) getUser(user.getEmailAddress());
+		u.setUserStatus(inactive);
+		save(u);
+	}
+	
+	public void updatePassword(User user, String password) {
+		DynamoDbUser u = (DynamoDbUser) getUser(user.getEmailAddress());
+		try {
+			u.setCredentials(hash(password));
+		} catch (Exception e) { 
+			throw Throwables.propagate(e);
+		}
+		save(u);
+
+	}
+	
+	
+
+	public boolean credentialsMatch(User user, String credentials) {
+		DynamoDbUser u = getUser(user.getEmailAddress());
+		try {
+			return hash(credentials).equals(u.getCredentials());
+		} catch (Exception e) { 
+			throw Throwables.propagate(e);
+		}
+
+	}
+	
+	
+	// TODO - move to pwd algorithm which should be pluggable via spring config
+	static String hash(String text) throws NoSuchAlgorithmException, UnsupportedEncodingException{
+	    MessageDigest md = MessageDigest.getInstance("SHA-1"); 
+	    return byteArray2Hex(md.digest(text.getBytes("UTF-8")));
+	}
+
+	private static String byteArray2Hex(final byte[] hash) {
+	    Formatter formatter = new Formatter();
+	    for (byte b : hash) {
+	        formatter.format("%02x", b);
+	    }
+	    return formatter.toString();
+	}
+	
+	
+	private <A> void applyWhileTrue(Predicate<? super A> callback,
+			PaginatedList<A> list) {
+		Iterables.tryFind(list, Predicates.not(callback));
+	}
+
+	private String hashKeyAttributeName(Class<DynamoDbUser> clazz) {
+		List<Method> methods = Lists.newArrayList(clazz.getMethods());
+		Iterable<DynamoDBHashKey> hks = Iterables.transform(methods, new Function<Method,DynamoDBHashKey>() {
+			public DynamoDBHashKey apply(Method input) {
+				return input.getAnnotation(DynamoDBHashKey.class);
+			}});
+		Optional<DynamoDBHashKey> hk = Iterables.tryFind(hks, Predicates.notNull());
+		return hk.isPresent() ? hk.get().attributeName() : null;
+	}
+	
 }

@@ -13,6 +13,7 @@ import com.google.common.base.Preconditions;
 @DynamoDBTable(tableName="Users")
 public class DynamoDbUser implements User {
 	String emailAddress;
+	String credentials;
 	boolean registered;
 	String slug;
 	UserStatus userStatus = UserStatus.Active;
@@ -96,6 +97,17 @@ public class DynamoDbUser implements User {
 	public boolean isAdmin() {
 		return admin;
 	}
+	
+	@DynamoDBAttribute(attributeName="Credentials")
+	public String getCredentials() {
+		return credentials;
+	}
+	public void setCredentials(String credentials) {
+		this.credentials = credentials;
+	}
+
+	
+	
 	public void setAdmin(boolean value) {
 		this.admin = value;
 	}

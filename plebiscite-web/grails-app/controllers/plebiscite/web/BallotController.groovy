@@ -1,9 +1,7 @@
 package plebiscite.web
 
-import org.springframework.dao.DataIntegrityViolationException
-import org.trevershick.plebiscite.engine.BallotCriteria;
-import org.trevershick.plebiscite.engine.DataService;
-import org.trevershick.plebiscite.model.Ballot;
+import org.trevershick.plebiscite.engine.*;
+import org.trevershick.plebiscite.model.*;
 
 import com.google.common.base.Predicate;
 
@@ -20,7 +18,7 @@ class BallotController {
 	}
 	
 	
-	
+	Engine engine;
 	DataService dataService;
 	
     def index() {
@@ -28,26 +26,19 @@ class BallotController {
     }
 
     def list() {
-//		flash.message = "yay"
         params.max = Math.min(params.max ? params.int('max') : 10, 100)
 		
 		def ballots = []
 		def criteria = new BallotCriteria();
-//		criteria.addState(State.Open);
-//		criteria.addState(State.Open);
 		def p = new Predicate<Ballot>(){
 			public boolean apply(Ballot b) {
 				ballots += b;
 			}
 		};
-		dataService.ballots(criteria, p);
-
-		
+		engine.ballotListForAdmin(session.user, criteria, p);
         [
 			ballotInstanceList: ballots,
 			ballotInstanceTotal: ballots.size
-	//		ballotInstanceList: Ballot2.list(params), 
-	//		ballotInstanceTotal: Ballot2.count()
 		]
     }
 
@@ -133,7 +124,7 @@ class BallotController {
 			flash.message = message(code: 'default.deleted.message', args: [message(code: 'ballot.label', default: 'Ballot'), params.id])
             redirect(action: "list")
         }
-        catch (DataIntegrityViolationException e) {
+        catch (Exception e) {
 			flash.message = message(code: 'default.not.deleted.message', args: [message(code: 'ballot.label', default: 'Ballot'), params.id])
             redirect(action: "show", id: params.id)
         }

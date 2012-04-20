@@ -30,7 +30,9 @@ public interface Ballot {
 	 * @return
 	 */
 	boolean isVoteChangeable();
+	void setVoteChangeable(boolean value);
 	
+	void setExpirationDate(Date d);
 	Date getExpirationDate();
 	/**
 	 * Not all ballots expire.  Some will run indefinitely until cancelled or 
@@ -42,5 +44,4 @@ public interface Ballot {
 	
 	Collection<BallotClosePolicy> getClosePolicies();
 	boolean isComplete();
-	Collection<User> getRequiredVoters();
 }

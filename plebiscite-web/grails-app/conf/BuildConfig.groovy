@@ -12,22 +12,24 @@ grails.project.dependency.resolution = {
     // inherit Grails' default dependencies
     inherits("global") {
 		excludes (
-			"aopalliance",
-			"aspectjweaver",
-			"aspectjrt",
-			"cglib-nodep",
-			"jta",
-			"spring-jdbc",
-			"spring-jms",
-			"spring-tx",
-			"spring-orm",
-			"commons-dbcp",
-			"hibernate-jpa-2.0-api",
-			"h2",
-			"grails-datastore-gorm",
-			"ejb3-persistence",
-			"grails-gorm",
-			"grails-hibernate")
+			"ehcache-core"
+			//"aopalliance",
+			//"aspectjweaver",
+			//"aspectjrt",
+			//"cglib-nodep",
+			//"jta",
+			//"spring-jdbc",
+			//"spring-jms",
+			//"spring-tx",
+			//"spring-orm", 
+			//"commons-dbcp",
+			//"hibernate-jpa-2.0-api",
+			//"h2",
+			//"grails-datastore-gorm",
+			//"ejb3-persistence",
+			//"grails-gorm",
+			//"grails-hibernate"
+			)
     }
     log "warn" // log level of Ivy resolver, either 'error', 'warn', 'info', 'debug' or 'verbose'
     checksums true // Whether to verify checksums on resolve
@@ -45,7 +47,7 @@ grails.project.dependency.resolution = {
     }
     dependencies {
         // specify dependencies here under either 'build', 'compile', 'runtime', 'test' or 'provided' scopes eg.
-		compile("org.trevershick.plebiscite:plebiscite-engine:0.0.2.1-SNAPSHOT") {
+		compile("org.trevershick.plebiscite:plebiscite-engine:0.0.2.2-SNAPSHOT") {
 			changing = true
 		}
 

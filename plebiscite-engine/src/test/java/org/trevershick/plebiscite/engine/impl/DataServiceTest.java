@@ -1,6 +1,6 @@
 package org.trevershick.plebiscite.engine.impl;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -8,16 +8,11 @@ import java.util.List;
 import java.util.Map;
 
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.trevershick.plebiscite.engine.BallotCriteria;
 import org.trevershick.plebiscite.model.Ballot;
 import org.trevershick.plebiscite.model.BallotState;
-import org.trevershick.plebiscite.model.QuorumClosePolicy;
-import org.trevershick.plebiscite.model.SuperUserClosePolicy;
 
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.services.dynamodb.AmazonDynamoDBClient;
 import com.amazonaws.services.dynamodb.model.AttributeValue;
 import com.amazonaws.services.dynamodb.model.DeleteItemRequest;
 import com.amazonaws.services.dynamodb.model.Key;
@@ -25,31 +20,18 @@ import com.amazonaws.services.dynamodb.model.QueryRequest;
 import com.amazonaws.services.dynamodb.model.QueryResult;
 import com.google.common.base.Predicate;
 
-public class DataServiceTest {
+public class DataServiceTest extends AWSTest {
 
 	
 	private static DynamoDbDataService svc;
-	private static AmazonDynamoDBClient client;
-	private static PlebisciteEnvironment env;
 
-	@BeforeClass
-	public static void setup() {
-		String accessKey = System.getProperty("AWS_ACCESS_KEY_ID");
-		String secretKey = System.getProperty("AWS_SECRET_KEY");
-		assertTrue("Got the access key", accessKey != null && accessKey.trim().length() > 0);
-		assertTrue("Got the secret key", secretKey != null && secretKey.trim().length() > 0);
-		BasicAWSCredentials awsCredentials = new BasicAWSCredentials(accessKey, secretKey);
-		env = new PlebisciteEnvironment();
-//		env.setQualifier("FUNC");
-		
-		client = new AmazonDynamoDBClient(awsCredentials);
-		svc = new DynamoDbDataService();
-		svc.setEnv(env);
-		svc.setDb(client);
-	}
 
 	@Before
 	public void clean() {
+		svc = new DynamoDbDataService();
+		svc.setEnv(env);
+		svc.setDb(client);
+
 		svc.ballots(new BallotCriteria(), new Predicate<Ballot>() {
 			public boolean apply(Ballot input) {
 				svc.delete(input);
@@ -85,8 +67,8 @@ public class DataServiceTest {
 		b.setTitle("Test " + System.currentTimeMillis());
 		b.setState(BallotState.Open);
 		b.setExpirationDate(new Date(System.currentTimeMillis() + (1000 * 60 * 60 * 24)));
-		b.addClosePolicy(new QuorumClosePolicy(5,false));
-		b.addClosePolicy(new SuperUserClosePolicy());
+//		b.addClosePolicy(new QuorumClosePolicy(5,false));
+//		b.addClosePolicy(new SuperUserClosePolicy());
 		svc.save(b);
 
 		b = svc.createBallot();
