@@ -3,7 +3,7 @@ package org.trevershick.plebiscite.engine.impl;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.util.Assert;
 import org.trevershick.plebiscite.engine.AlreadyExistsException;
-import org.trevershick.plebiscite.engine.BallotClosedException;
+import org.trevershick.plebiscite.engine.BallotCompletedException;
 import org.trevershick.plebiscite.engine.BallotCriteria;
 import org.trevershick.plebiscite.engine.DataService;
 import org.trevershick.plebiscite.engine.EmailService;
@@ -15,6 +15,7 @@ import org.trevershick.plebiscite.model.Ballot;
 import org.trevershick.plebiscite.model.BallotState;
 import org.trevershick.plebiscite.model.User;
 import org.trevershick.plebiscite.model.UserStatus;
+import org.trevershick.plebiscite.model.Vote;
 import org.trevershick.plebiscite.model.VoteType;
 
 import com.google.common.base.Preconditions;
@@ -53,19 +54,18 @@ public class EngineImpl implements Engine, InitializingBean {
 
 	public Ballot createBallot(User owner, String title)
 			throws InvalidDataException {
-		// TODO Auto-generated method stub
-		return null;
+		User user = dataService.getUser(owner.getEmailAddress());
+		
+		Ballot b = dataService.createBallot();
+		b.setOwner(user.getEmailAddress());
+		b.setTitle(title);
+		this.dataService.save(b);
+		return b;
 	}
 
-	public User addEmailToBallot(String emailAddress, boolean required)
-			throws AlreadyExistsException, BallotClosedException {
-		// TODO Auto-generated method stub
-		return null;
-	}
 
 	public void deleteBallot(User who, Ballot b) {
-		// TODO Auto-generated method stub
-		
+		throw new RuntimeException("Not Implemented");
 	}
 
 	public User getUser(String userId) {
@@ -95,13 +95,24 @@ public class EngineImpl implements Engine, InitializingBean {
 		this.dataService.updateState(user, UserStatus.Inactive);
 	}
 
-	public User addUserToBallot(String emailAddress, boolean required)
-			throws AlreadyExistsException, BallotClosedException {
-		throw new RuntimeException("addUserToBallot not implemented");
+	public User addUserToBallot(Ballot b,String emailAddress, boolean required)
+			throws AlreadyExistsException, BallotCompletedException {
+		Ballot ballot = getBallot(b.getId());
+		if (ballot.getState() != BallotState.Open && ballot.getState() != BallotState.Closed) {
+			throw new BallotCompletedException();
+		}
+		
+		User userToAdd = this.dataService.createUser(emailAddress);
+		this.dataService.save(userToAdd);
+		
+		Vote v = dataService.createVote(ballot, userToAdd);
+		v.setRequired(required);
+		this.dataService.save(v);
+		return getUser(emailAddress);
 	}
 
-	public void removeUserFromBallot(String emailAddress)
-			throws BallotClosedException {
+	public void removeUserFromBallot(Ballot b, String emailAddress)
+			throws BallotCompletedException {
 		throw new RuntimeException("removeUserFromBallot not implemented");
 	}
 
@@ -202,4 +213,13 @@ public class EngineImpl implements Engine, InitializingBean {
 		}
 	}
 
+	public void votes(Ballot ballot, Predicate<Vote> vote) {
+		dataService.votes(ballot, vote);
+	}
+
+	public void votes(User forUser, Predicate<Vote> vote) {
+		dataService.votes(forUser, vote);
+	}
+
+	
 }

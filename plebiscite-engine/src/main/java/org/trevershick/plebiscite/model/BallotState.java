@@ -7,7 +7,7 @@ public enum BallotState {
 		return this == Closed;
 	}
 	public boolean isCancellable() {
-		return this == Open;
+		return this == Open || this == Closed;
 	}
 	public boolean isComplete() {
 		return this != Closed && this != Open;

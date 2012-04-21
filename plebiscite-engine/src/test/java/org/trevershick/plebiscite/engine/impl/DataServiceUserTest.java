@@ -11,6 +11,7 @@ import java.io.UnsupportedEncodingException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -18,6 +19,7 @@ import org.trevershick.plebiscite.model.User;
 import org.trevershick.plebiscite.model.UserStatus;
 
 import com.google.common.base.Predicate;
+import com.google.common.collect.Sets;
 
 public class DataServiceUserTest extends AWSTest {
 
@@ -29,7 +31,31 @@ public class DataServiceUserTest extends AWSTest {
 		svc = new DynamoDbDataService();
 		svc.setEnv(env);
 		svc.setDb(client);
+		// remove all users that have a numeric @yahoo address.
+		svc.users(new Predicate<User>() {
+			public boolean apply(User input) {
+				if (input.getEmailAddress().matches("\\d+@yahoo\\.com")) {
+					svc.delete(input);
+				}
+				return true;
+			}
+		});
 	}
+
+	@Test
+	public void test_user_votes() {
+		String em = System.currentTimeMillis() + "@yahoo.com";
+		DynamoDbUser u = svc.createUser(em);
+		svc.save(u);
+		
+		u.setVotedOnBallots(Sets.newHashSet("x","y","z"));
+		svc.save(u);
+		
+		DynamoDbUser user = svc.getUser(u.getEmailAddress());
+		Set<String> vs = user.getVotedOnBallots();
+		assertEquals(Sets.newHashSet("x","y","z"),vs);
+	}
+	
 	
 	
 	@Test

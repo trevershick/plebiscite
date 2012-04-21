@@ -20,7 +20,7 @@ import com.amazonaws.services.dynamodb.model.QueryRequest;
 import com.amazonaws.services.dynamodb.model.QueryResult;
 import com.google.common.base.Predicate;
 
-public class DataServiceTest extends AWSTest {
+public class DataServiceBallotTest extends AWSTest {
 
 	
 	private static DynamoDbDataService svc;
@@ -57,11 +57,44 @@ public class DataServiceTest extends AWSTest {
 			
 		}
 	}
-	
+
+	@Test(expected=RuntimeException.class)
+	public void test_cant_update_state_to_null() {
+		DynamoDbBallot b = svc.createBallot();
+		b.setTitle("Test " + System.currentTimeMillis());
+		svc.save(b);
+		svc.updateState(b, null); // can't pass in null
+	}
 	
 	
 	@Test
-	public void test() {
+	public void test_update_state() {
+		DynamoDbBallot b = svc.createBallot();
+		b.setTitle("Test " + System.currentTimeMillis());
+		svc.save(b);
+		b = (DynamoDbBallot) svc.getBallot(b.getId());
+		assertEquals(b.getState(), BallotState.Closed);
+		
+		
+		svc.updateState(b, BallotState.Open);
+		b = (DynamoDbBallot) svc.getBallot(b.getId());
+		assertEquals(b.getState(), BallotState.Open);
+
+		svc.updateState(b, BallotState.Closed);
+		b = (DynamoDbBallot) svc.getBallot(b.getId());
+		assertEquals(b.getState(), BallotState.Closed);
+
+		svc.updateState(b, BallotState.Rejected);
+		b = (DynamoDbBallot) svc.getBallot(b.getId());
+		assertEquals(b.getState(), BallotState.Rejected);
+
+		svc.updateState(b, BallotState.TimedOut);
+		b = (DynamoDbBallot) svc.getBallot(b.getId());
+		assertEquals(b.getState(), BallotState.TimedOut);
+	}
+	
+	@Test
+	public void test_create_save() {
 		
 		DynamoDbBallot b = svc.createBallot();
 		b.setTitle("Test " + System.currentTimeMillis());
@@ -101,9 +134,6 @@ public class DataServiceTest extends AWSTest {
 		crit.addState(BallotState.Closed);
 		svc.ballots(crit, callback);
 		assertEquals(3, ls.size()); // query for open and closed
-
-		
-		
 		
 		ls.clear();
 		crit = new BallotCriteria();

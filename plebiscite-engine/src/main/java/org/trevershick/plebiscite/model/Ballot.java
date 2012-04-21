@@ -7,6 +7,7 @@ import java.util.Date;
 
 public interface Ballot {
 	String getId();
+	String getOwner();
 	
     String getTitle();
     void setTitle(String title);
@@ -14,6 +15,7 @@ public interface Ballot {
     String getDescription();
     void setDescription(String description);
 	
+    void setOwner(String email);
 	BallotState getState();
 	
 	int getVoteCount();

@@ -4,7 +4,9 @@ import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Method;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Formatter;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -32,10 +34,14 @@ import com.amazonaws.services.dynamodb.datamodeling.PaginatedList;
 import com.amazonaws.services.dynamodb.datamodeling.PaginatedQueryList;
 import com.amazonaws.services.dynamodb.datamodeling.PaginatedScanList;
 import com.amazonaws.services.dynamodb.model.AttributeValue;
+import com.amazonaws.services.dynamodb.model.BatchGetItemRequest;
+import com.amazonaws.services.dynamodb.model.BatchGetItemResult;
+import com.amazonaws.services.dynamodb.model.BatchResponse;
 import com.amazonaws.services.dynamodb.model.ComparisonOperator;
 import com.amazonaws.services.dynamodb.model.Condition;
 import com.amazonaws.services.dynamodb.model.DeleteItemRequest;
 import com.amazonaws.services.dynamodb.model.Key;
+import com.amazonaws.services.dynamodb.model.KeysAndAttributes;
 import com.amazonaws.services.dynamodb.model.PutItemRequest;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
@@ -59,12 +65,15 @@ public class DynamoDbDataService implements DataService,InitializingBean {
 	
 
 	private DynamoDBMapperConfig configFor(Class<?> clazz) {
-		DynamoDBTable annotation = clazz.getAnnotation(DynamoDBTable.class);
-		Preconditions.checkNotNull(annotation,"missing annotation on " + clazz);
-		String tableName = annotation.tableName();
-		return new DynamoDBMapperConfig(new TableNameOverride(env.qualifyTableName(tableName)));
+		return new DynamoDBMapperConfig(new TableNameOverride(tableName(clazz)));
 	}
 	
+	private String tableName(Class<?> clazz) {
+		DynamoDBTable annotation = clazz.getAnnotation(DynamoDBTable.class);
+		Preconditions.checkNotNull(annotation,"missing annotation on " + clazz);
+		String tableName = env.qualifyTableName(annotation.tableName());
+		return tableName;
+	}
 	private String tableName(String tableName) {
 		return env.qualifyTableName(tableName);
 	}
@@ -113,6 +122,12 @@ public class DynamoDbDataService implements DataService,InitializingBean {
 		
 		DynamoDBMapper mapper = new DynamoDBMapper(db,configFor(DynamoDbBallot.class));
 		mapper.save(ballot);
+		if (ballot.getOwner() != null) {
+			DynamoDbUser owner = getUser(ballot.getOwner());
+			owner.addBallotIOwn(ballot.getId());
+			save(owner);
+		}
+		
 		updateStateIndex(ballot, ballot.getState(), ballot.getState()); // TODO this is obviously not correct, it doesn't have the previous state
 		return ballot;
 	}
@@ -167,7 +182,7 @@ public class DynamoDbDataService implements DataService,InitializingBean {
 
 
 
-	public User createUser(String emailAddress) {
+	public DynamoDbUser createUser(String emailAddress) {
 		Preconditions.checkArgument(emailAddress != null,"email address is required");
 		DynamoDbUser user = getUser(emailAddress);
 		if (user == null) {
@@ -234,7 +249,7 @@ public class DynamoDbDataService implements DataService,InitializingBean {
 	
 	public void votes(Ballot ballot, Predicate<Vote> vote) {
 		DynamoDBQueryExpression queryexp = new DynamoDBQueryExpression(new AttributeValue(ballot.getId()));
-		PaginatedQueryList<DynamoDbVote> query = new DynamoDBMapper(db, configFor(DynamoDbVote.class)).query(DynamoDbVote.class, queryexp);
+		PaginatedQueryList<DynamoDbVote> query = mapper(DynamoDbVote.class).query(DynamoDbVote.class, queryexp);
 		applyWhileTrue(vote, query);
 	}
 
@@ -290,7 +305,7 @@ public class DynamoDbDataService implements DataService,InitializingBean {
 	
 	
 	private <A> void applyWhileTrue(Predicate<? super A> callback,
-			PaginatedList<A> list) {
+			List<A> list) {
 		Iterables.tryFind(list, Predicates.not(callback));
 	}
 
@@ -303,5 +318,56 @@ public class DynamoDbDataService implements DataService,InitializingBean {
 		Optional<DynamoDBHashKey> hk = Iterables.tryFind(hks, Predicates.notNull());
 		return hk.isPresent() ? hk.get().attributeName() : null;
 	}
+	
+	public void votes(User forUser, Predicate<Vote> vote) {
+		Preconditions.checkArgument(forUser != null,"forUser must not be null");
+		
+		final DynamoDbUser user = getUser(forUser.getEmailAddress());
+		Preconditions.checkNotNull(user, "couldnt' get user");
+		
+
+		List<Key> newArrayList = Lists.newArrayList(Iterables.transform(user.getVotedOnBallots(), new Function<String,Key>() {
+			public Key apply(String input) {
+				return new Key().withHashKeyElement(new AttributeValue().withS(input)).withRangeKeyElement(new AttributeValue().withS(user.getEmailAddress()));
+			}}));
+		
+		Map<String, KeysAndAttributes> requestItems = new HashMap<String, KeysAndAttributes>();
+		requestItems.put(tableName(DynamoDbVote.class),
+		        new KeysAndAttributes()
+		            .withKeys(newArrayList));
+		BatchGetItemRequest batchGetItemRequest = new BatchGetItemRequest().withRequestItems(requestItems);
+		BatchGetItemResult result = db.batchGetItem(batchGetItemRequest);
+		
+		BatchResponse br = result.getResponses().get(tableName(DynamoDbVote.class));
+		List<DynamoDbVote> votes = mapper(DynamoDbVote.class).marshallIntoObjects(DynamoDbVote.class, br.getItems());
+		applyWhileTrue(vote, votes);
+	}
+	public void delete(Vote vote) {
+		mapper(DynamoDbVote.class).delete(vote);
+	}
+	public Vote getVote(Ballot ballot, User user) {
+		DynamoDBMapper m = mapper(DynamoDbVote.class);
+		DynamoDbVote vote = m.load(DynamoDbVote.class, ballot.getId(), user.getEmailAddress());
+		return vote;
+	}
+	
+	public Vote createVote(Ballot ballot, User user) {
+		DynamoDbVote v = new DynamoDbVote();
+		v.setBallotId(ballot.getId());
+		v.setUserId(user.getEmailAddress());
+		return v;
+	}
+	
+	public Vote save(Vote vote) {
+		mapper(DynamoDbVote.class).save(vote);
+		DynamoDbUser uz = getUser(vote.getUserId());
+		uz.addVotedOnBallot(vote.getBallotId());
+		save(uz);
+		return vote;
+	}
+	private DynamoDBMapper mapper(Class<?> clazz) {
+		return new DynamoDBMapper(db, configFor(clazz));
+	}
+	
 	
 }

@@ -23,6 +23,8 @@ public class DynamoDbBallot implements Ballot {
 	private String id;
 	private String title;
 	private String description;
+	private String owner;
+	
 	private BallotState state = BallotState.Closed;
 	private Integer version;
 	
@@ -47,8 +49,16 @@ public class DynamoDbBallot implements Ballot {
     	this.version = value;
     }
     
-
-    @DynamoDBAttribute(attributeName="Title")
+	@DynamoDBAttribute(attributeName="Owner")
+    public String getOwner() {
+		return owner;
+	}
+	public void setOwner(String owner) {
+		this.owner = owner;
+	}
+	
+	
+	@DynamoDBAttribute(attributeName="Title")
     public String getTitle() { return title; }
     public void setTitle(String title) { 
     	this.title = title;

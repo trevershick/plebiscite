@@ -20,25 +20,35 @@ public interface DataService {
 	void ballots(BallotCriteria criteria, Predicate<Ballot> callback);
 	void users(UserCriteria criteria, Predicate<User> users);
 	void votes(Ballot ballot, Predicate<Vote> vote);
-
+	void votes(User forUser, Predicate<Vote> vote);
 	
-	void delete(Ballot ballot);
-	void delete(User ballot);
-	Ballot save(Ballot ballot);
-	User save(User ballot);
+	
+	
+	void delete(Vote vote);
+	Vote getVote(Ballot ballot, User user);
+	Vote createVote(Ballot ballot, User user);
+	Vote save(Vote vote);
+	
+	
 	
 	/**
 	 * basic factory method, does NOT persist a ballot
+	 * @param string 
 	 * @return
 	 */
 	Ballot createBallot();
-	User createUser(String emailAddress);
 	
 	Ballot getBallot(String id);
-	User getUser(String id);
 	void updateState(Ballot u, BallotState cancelled);
+	void delete(Ballot ballot);
+	Ballot save(Ballot ballot);
+
+	
+	User createUser(String emailAddress);
+	User save(User ballot);
+	void delete(User user);
+	User getUser(String id);
 	void updateState(User user, UserStatus inactive);
 	void updatePassword(User user, String password);
 	boolean credentialsMatch(User user, String credentials);
-	
 }
