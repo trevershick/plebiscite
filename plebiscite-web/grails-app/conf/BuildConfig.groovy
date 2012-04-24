@@ -47,7 +47,7 @@ grails.project.dependency.resolution = {
     }
     dependencies {
         // specify dependencies here under either 'build', 'compile', 'runtime', 'test' or 'provided' scopes eg.
-		compile("org.trevershick.plebiscite:plebiscite-engine:0.0.2.12-SNAPSHOT") {
+		compile("org.trevershick.plebiscite:plebiscite-engine:0.0.2.13-SNAPSHOT") {
 			changing = true
 		}
 

@@ -1,10 +1,10 @@
-
 <%@ page import="org.trevershick.plebiscite.model.Ballot"%>
 <!doctype html>
 <html>
 <head>
 <meta name="layout" content="main">
-<title><g:message code="default.reverify.title" default="Reverify E-Mail" /></title>
+<title><g:message code="default.reverify.title"
+		default="Reverify E-Mail" /></title>
 </head>
 <body>
 	<div class="body">
@@ -23,11 +23,13 @@
 						<label for="email"> <g:message code="user.email.label"
 								default="E-Mail" /> <span class="required-indicator">*</span>
 						</label>
-						<g:textField name="email" required="true" value="${session.user? session.user.emailAddress : params.em }" />
+						<g:textField name="email" required="true"
+							value="${session.user? session.user.emailAddress : params.em }" />
 					</div>
 				</fieldset>
 				<fieldset class="buttons">
-					<g:submitButton name="submitButton" class="login" value="${message(code: 'default.reverify.button.label', default: 'Send Verification E-Mail')}" />
+					<g:submitButton name="submitButton" class="login"
+						value="${message(code: 'default.reverify.button.label', default: 'Send Verification E-Mail')}" />
 				</fieldset>
 			</g:form>
 		</div>

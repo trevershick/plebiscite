@@ -1,5 +1,8 @@
 package org.trevershick.plebiscite.engine.impl;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.util.Assert;
 import org.trevershick.plebiscite.engine.AlreadyExistsException;
@@ -20,6 +23,8 @@ import org.trevershick.plebiscite.model.VoteType;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
+import com.google.common.base.Throwables;
+import com.google.common.collect.Maps;
 
 public class EngineImpl implements Engine, InitializingBean {
 	DataService dataService;
@@ -194,7 +199,7 @@ public class EngineImpl implements Engine, InitializingBean {
 	/**
 	 * doesn't mark the user as registered. just creates a user
 	 */
-	public void registerUser(String emailAddress)
+	public void registerUser(String emailAddress, Map<String,Object> emailParams)
 			throws AlreadyExistsException, InvalidDataException {
 		User user = this.dataService.getUser(emailAddress);
 		
@@ -202,22 +207,30 @@ public class EngineImpl implements Engine, InitializingBean {
 			throw new AlreadyExistsException();
 		}
 		user = this.dataService.createUser(emailAddress);
-		sendEmailVerificationEmail(user);
+		sendEmailVerificationEmail(user, emailParams);
 		this.dataService.save(user);
 	}
 
-	private void sendEmailVerificationEmail(User user) {
+	private void sendEmailVerificationEmail(User user, Map<String,Object> emailParams) {
 		// construct a token
 		String token = user.generateVerificationToken();
 		// send an email
 		String to = user.getEmailAddress();
-		String subject = "Email Verification E-Mail From Plebiscite";
-		String body = "Please click to verify " + token;
 		
-		this.dataService.save(user);
-		if (emailService != null) {
-			emailService.sendEmail(to,subject,body);
+		try {
+			HashMap<String, Object> p = Maps.newHashMap(emailParams);
+			p.put("email", to);
+			p.put("token", token);
+			Map<String, String> m = new EmailProducer().buildMailMessage("emailverification", p);
+			this.dataService.save(user);
+			if (emailService != null) {
+				emailService.sendEmail(to,m.get(EmailProducer.SUBJECT),m.get(EmailProducer.BODY));
+			}
+		} catch (Exception e) {
+			throw Throwables.propagate(e);
 		}
+
+		
 	}
 
 	public boolean verifyEmail(String emailAddress, String verificationToken) {
@@ -238,10 +251,10 @@ public class EngineImpl implements Engine, InitializingBean {
 	}
 
 	@Override
-	public void sendEmailVerificationEmail(String emailAddress) {
+	public void sendEmailVerificationEmail(String emailAddress, Map<String,Object> emailParams) {
 		Preconditions.checkArgument(emailAddress != null,"emailAddress cannot be null");
 		User u = getUser(emailAddress);
-		this.sendEmailVerificationEmail(u);
+		this.sendEmailVerificationEmail(u, emailParams);
 	}
 
 	public void updateUser(User user) {
@@ -289,16 +302,28 @@ public class EngineImpl implements Engine, InitializingBean {
 	}
 
 	@Override
-	public void sendTemporaryPassword(String emailAddress) {
+	public void sendTemporaryPassword(String emailAddress, Map<String,Object> emailParams) {
 		Preconditions.checkArgument(emailAddress != null,"emailAddress is required");
 		User user = this.dataService.getUser(emailAddress);
 		Preconditions.checkNotNull(user,"user not found");
 		String pwd = user.generateTemporaryPassword();
 		this.dataService.updatePassword(user, pwd);
 		
-		String subject = "Temporary Password for Plebiscite";
-		String body = pwd;
-		this.emailService.sendEmail(emailAddress, subject, body);
+		
+		try {
+			HashMap<String, Object> p = Maps.newHashMap(emailParams);
+			p.put("user", user);
+			p.put("password", pwd);
+			
+			Map<String, String> m = new EmailProducer().buildMailMessage("temporarypassword", p);
+			if (emailService != null) {
+				emailService.sendEmail(user.getEmailAddress(),
+						m.get(EmailProducer.SUBJECT),
+						m.get(EmailProducer.BODY));
+			}
+		} catch (Exception e) {
+			throw Throwables.propagate(e);
+		}
 		
 	}
 

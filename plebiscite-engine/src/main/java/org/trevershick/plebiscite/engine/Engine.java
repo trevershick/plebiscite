@@ -1,5 +1,7 @@
 package org.trevershick.plebiscite.engine;
 
+import java.util.Map;
+
 import org.trevershick.plebiscite.model.Ballot;
 import org.trevershick.plebiscite.model.User;
 import org.trevershick.plebiscite.model.Vote;
@@ -9,7 +11,10 @@ import com.google.common.base.Predicate;
 
 
 public interface Engine {
-
+	
+	String EMAIL_LOGIN_URL = "loginLink";
+	String EMAIL_VERIFY_URL = "verifyLink";
+	
 	// ballot CRUD operations
 	User addUserToBallot(Ballot b, String emailAddress, boolean required) throws AlreadyExistsException, BallotCompletedException;
 	void removeUserFromBallot(Ballot b, String emailAddress) throws BallotCompletedException;
@@ -40,7 +45,7 @@ public interface Engine {
 	void reactivate(User user);
 	void ban(User user);
 	
-	void registerUser(String emailAddress) throws AlreadyExistsException, InvalidDataException;
+	void registerUser(String emailAddress, Map<String,Object> emailParams) throws AlreadyExistsException, InvalidDataException;
 	User authenticate(String userId, String credentials) throws BannedUserException;
 	/**
 	 * called by clients (web layer) to verify that the email and link passed in are correct.
@@ -49,8 +54,9 @@ public interface Engine {
 	 * @return
 	 */
 	boolean verifyEmail(String emailAddress, String verificationToken);
-	void sendTemporaryPassword(String emailAddress);
-	void sendEmailVerificationEmail(String emailAddress);
+	
+	void sendTemporaryPassword(String emailAddress, Map<String,Object> emailParams);
+	void sendEmailVerificationEmail(String emailAddress, Map<String,Object> emailParams);
 	void changePassword(User user, String password);
 	User getUser(String userId);
 	Ballot getBallot(String ballotId);

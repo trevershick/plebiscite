@@ -52,7 +52,14 @@ class AuthController {
 			render(view: "reverify")
 			return;
 		}
-		engine.sendEmailVerificationEmail(params.email)
+		def emailParameters = [
+			site: "Plebiscite",
+			loginLink : grailsLinkGenerator.link( controller : "auth", action : "login", absolute : true),
+			verifyLink : grailsLinkGenerator.link( controller : "auth", action : "verify", absolute : true),
+			verifyLinkParams : [ email:"em",token:"tk" ]
+			]
+		
+		engine.sendEmailVerificationEmail(params.email, emailParameters)
 		render(view: "verificationEmailIsComing")
 	}
 
@@ -63,7 +70,14 @@ class AuthController {
 		}
 
 		try {
-			engine.registerUser(params.email)
+			def emailParameters = [
+				site: "Plebiscite",
+				loginLink : grailsLinkGenerator.link( controller : "auth", action : "login", absolute : true),
+				verifyLink : grailsLinkGenerator.link( controller : "auth", action : "verify", absolute : true),
+				verifyLinkParams : [ email:"em",token:"tk" ]
+				]
+	
+			engine.registerUser(params.email, emailParameters)
 			render(view: "verificationEmailIsComing")
 		} catch (AlreadyExistsException aee) {
 			flash.error = message(code: 'default.yourealreadyregistered', default:'You\'re already registered.')
@@ -122,7 +136,14 @@ class AuthController {
 		}
 		def user=engine.getUser(params.email)
 		if (user) {
-			engine.sendTemporaryPassword(params.email);
+			def emailParameters = [
+				site: "Plebiscite",
+				loginLink : grailsLinkGenerator.link( controller : "auth", action : "login", absolute : true),
+				verifyLink : grailsLinkGenerator.link( controller : "auth", action : "verify", absolute : true),
+				verifyLinkParams : [ email:"em",token:"tk" ]
+				]
+
+			engine.sendTemporaryPassword(params.email, emailParameters);
 			render(view: "temporaryPasswordIsComing")
 		} else {
 			flash.error = message(code:'yourenotregistered', default:"You're not a user yet")
