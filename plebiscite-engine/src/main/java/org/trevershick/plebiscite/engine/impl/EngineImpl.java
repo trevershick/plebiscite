@@ -102,6 +102,7 @@ public class EngineImpl implements Engine, InitializingBean {
 			throw new BallotCompletedException();
 		}
 		
+		
 		User userToAdd = this.dataService.createUser(emailAddress);
 		this.dataService.save(userToAdd);
 		
@@ -109,36 +110,70 @@ public class EngineImpl implements Engine, InitializingBean {
 		v.setRequired(required);
 		this.dataService.save(v);
 		return getUser(emailAddress);
+		
+		// TODO - need to send email to the voter. t he email  needs to be different if someone is
+		// registered vs not registered
 	}
 
+	// TODO - add security, only admin or the ballot owner can do this
 	public void removeUserFromBallot(Ballot b, String emailAddress)
 			throws BallotCompletedException {
-		throw new RuntimeException("removeUserFromBallot not implemented");
+		Ballot ballot = dataService.getBallot(b.getId());
+		if (ballot.getState().isComplete()) {
+			throw new BallotCompletedException();
+		}
+		
+		User u = dataService.getUser(emailAddress);
+		if (u == null) {
+			return;
+		}
+		Vote vote = dataService.getVote(ballot, u);
+		if (vote != null) { 
+			dataService.delete(vote);
+		}
 	}
 
 	public void processVote(Ballot ballot, String emailAddress, VoteType vote) {
+		
 		throw new RuntimeException("processVote not implemented");
 	}
 
 	public void open(Ballot ballot) {
-		throw new RuntimeException("open not implemented");
+		Ballot b = getBallot(ballot.getId());
+		if (b.getState().equals(BallotState.Closed)) {
+			this.dataService.updateState(b, BallotState.Open);
+			// TODO - notify the user of the state change
+		}
 	}
 
 	public boolean userCanVoteOn(Ballot ballot, String emailAddress) {
-		throw new RuntimeException("userCanVoteOn not implemented");
-		//return false;
+		if (ballot.isOpenBallot()) {
+			return true;
+		}
+		User u = getUser(emailAddress);
+		if (u == null) {
+			// if the user isn't in the system then he/she wasn't added to a ballot
+			return false;
+		}
+		return this.dataService.getVote(ballot, u) != null;
 	}
 
 	public void ballotsIOwn(User user, Predicate<Ballot> b) {
-		throw new RuntimeException("ballotsIOwn not implemented");
+		BallotCriteria bc = new BallotCriteria();
+		bc.addOwner(user.getEmailAddress());
+		this.dataService.ballots(bc, b);
 	}
 
 	public void ballotsIVotedOn(User user, Predicate<Ballot> b) {
-		throw new RuntimeException("ballotsIVotedOn not implemented");
+		BallotCriteria bc = new BallotCriteria();
+		bc.addVoter(user.getEmailAddress());
+		this.dataService.ballots(bc, b);
 	}
 
 	public void ballotsThatAreOpen(Predicate<Ballot> b) {
-		throw new RuntimeException("ballotsThatAreOpen not implemented");
+		BallotCriteria bc = new BallotCriteria();
+		bc.addState(BallotState.Open);
+		this.dataService.ballots(bc, b);
 		
 	}
 
@@ -155,26 +190,58 @@ public class EngineImpl implements Engine, InitializingBean {
 		this.dataService.updateState(user, UserStatus.Banned);
 	}
 
+	
+	/**
+	 * doesn't mark the user as registered. just creates a user
+	 */
 	public void registerUser(String emailAddress)
 			throws AlreadyExistsException, InvalidDataException {
-		// TODO creates a user unless one is there
-		throw new RuntimeException("registerUser not yet implemented");
+		User user = this.dataService.getUser(emailAddress);
+		
+		if (user != null) {
+			throw new AlreadyExistsException();
+		}
+		user = this.dataService.createUser(emailAddress);
+		sendEmailVerificationEmail(user);
+		this.dataService.save(user);
+	}
 
+	private void sendEmailVerificationEmail(User user) {
+		// construct a token
+		String token = user.generateVerificationToken();
+		// send an email
+		String to = user.getEmailAddress();
+		String subject = "Email Verification E-Mail From Plebiscite";
+		String body = "Please click to verify " + token;
+		
+		this.dataService.save(user);
+		if (emailService != null) {
+			emailService.sendEmail(to,subject,body);
+		}
 	}
 
 	public boolean verifyEmail(String emailAddress, String verificationToken) {
-		throw new RuntimeException("verifyEmail not yet implemented");
+		User user = this.getUser(emailAddress);
+		if (user == null) {
+			return false;
+		}
+		
 		// see if the token matches teh stored token
 		// if it does mark him registered
 		// remove the stored token
-//		return false;
+		if (user.verificationTokenMatches(verificationToken)) {
+			this.dataService.markEmailVerified(user);
+			return true;
+		}
+		return false;
+		
 	}
 
-	public void reconfirmEmail() {
-		
-		// TODO send email out to user
-		// TODO update the user record with a generated 'token'
-		throw new RuntimeException("reconfirmEmail not yet implemented");
+	@Override
+	public void sendEmailVerificationEmail(String emailAddress) {
+		Preconditions.checkArgument(emailAddress != null,"emailAddress cannot be null");
+		User u = getUser(emailAddress);
+		this.sendEmailVerificationEmail(u);
 	}
 
 	public void updateUser(User user) {
@@ -188,8 +255,8 @@ public class EngineImpl implements Engine, InitializingBean {
 
 	public void changePassword(User user, String password) {
 		Preconditions.checkArgument(user != null && user.getEmailAddress() != null && password != null);
-		// TODO password rules
 		this.dataService.updatePassword(user, password);
+		
 	}
 
 	public void ballotListForAdmin(User user, BallotCriteria criteria,
@@ -219,6 +286,20 @@ public class EngineImpl implements Engine, InitializingBean {
 
 	public void votes(User forUser, Predicate<Vote> vote) {
 		dataService.votes(forUser, vote);
+	}
+
+	@Override
+	public void sendTemporaryPassword(String emailAddress) {
+		Preconditions.checkArgument(emailAddress != null,"emailAddress is required");
+		User user = this.dataService.getUser(emailAddress);
+		Preconditions.checkNotNull(user,"user not found");
+		String pwd = user.generateTemporaryPassword();
+		this.dataService.updatePassword(user, pwd);
+		
+		String subject = "Temporary Password for Plebiscite";
+		String body = pwd;
+		this.emailService.sendEmail(emailAddress, subject, body);
+		
 	}
 
 	

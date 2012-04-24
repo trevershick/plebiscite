@@ -19,13 +19,13 @@
 
 
 
-			<g:form controller="user" action="doLogin" method="POST">
+			<g:form controller="auth" action="login" method="POST">
 				<fieldset class="form">
 					<div class="fieldcontain required">
 						<label for="email"> <g:message code="user.email.label"
 								default="E-Mail" /> <span class="required-indicator">*</span>
 						</label>
-						<g:textField name="email" required="true" value="" />
+						<g:textField name="email" required="true" value="${params.email }" />
 					</div>
 					<div class="fieldcontain required">
 						<label for="password"> <g:message code="user.password.label"
@@ -36,6 +36,7 @@
 				</fieldset>
 				<fieldset class="buttons">
 					<g:submitButton name="submitButton" class="login" value="${message(code: 'default.button.login.label', default: 'Login')}" />
+					<g:link action="forgotpassword"><g:message code="link.forgotpassword.label" default="I Forgot my Password"/></g:link>
 				</fieldset>
 			</g:form>
 		</div>

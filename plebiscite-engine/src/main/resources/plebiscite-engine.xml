@@ -20,13 +20,18 @@
 			<ref local="awsCredentials"/>
 		</constructor-arg>
 	</bean>
+	<bean id="ses" class="com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceClient">
+		<constructor-arg>
+			<ref local="awsCredentials"/>
+		</constructor-arg>
+	</bean>
 	
 	
 	<bean id="environment" class="org.trevershick.plebiscite.engine.impl.PlebisciteEnvironment"/>
 
 	<bean id="dataService" class="org.trevershick.plebiscite.engine.impl.DynamoDbDataService"
 		p:db-ref="dynamoDb" p:env-ref="environment"/>
-	<bean id="emailService" class="org.trevershick.plebiscite.engine.impl.SESEmailService" />
+	<bean id="emailService" class="org.trevershick.plebiscite.engine.impl.SESEmailService" p:client-ref="ses" />
 	<bean id="queueingService" class="org.trevershick.plebiscite.engine.impl.SQSQueuingService"/>
 	<bean id="engine" class="org.trevershick.plebiscite.engine.impl.EngineImpl"
 		p:dataService-ref="dataService"

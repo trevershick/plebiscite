@@ -6,10 +6,12 @@ import org.junit.BeforeClass;
 
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.dynamodb.AmazonDynamoDBClient;
+import com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceClient;
 
 public class AWSTest {
 	protected static AmazonDynamoDBClient client;
 	protected static PlebisciteEnvironment env;
+	protected static AmazonSimpleEmailServiceClient ses;
 
 	
 	
@@ -24,6 +26,7 @@ public class AWSTest {
 //		env.setQualifier("FUNC");
 		
 		client = new AmazonDynamoDBClient(awsCredentials);
+		ses = new AmazonSimpleEmailServiceClient(awsCredentials);
 	}
 
 }

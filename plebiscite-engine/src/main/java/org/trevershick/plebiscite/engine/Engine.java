@@ -42,8 +42,15 @@ public interface Engine {
 	
 	void registerUser(String emailAddress) throws AlreadyExistsException, InvalidDataException;
 	User authenticate(String userId, String credentials) throws BannedUserException;
+	/**
+	 * called by clients (web layer) to verify that the email and link passed in are correct.
+	 * @param emailAddress
+	 * @param verificationToken
+	 * @return
+	 */
 	boolean verifyEmail(String emailAddress, String verificationToken);
-	void reconfirmEmail();
+	void sendTemporaryPassword(String emailAddress);
+	void sendEmailVerificationEmail(String emailAddress);
 	void changePassword(User user, String password);
 	User getUser(String userId);
 	Ballot getBallot(String ballotId);

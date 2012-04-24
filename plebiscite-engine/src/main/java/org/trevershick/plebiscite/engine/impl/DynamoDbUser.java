@@ -1,8 +1,12 @@
 package org.trevershick.plebiscite.engine.impl;
 
+import java.security.SecureRandom;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.builder.EqualsBuilder;
 import org.trevershick.plebiscite.model.Ballot;
 import org.trevershick.plebiscite.model.User;
 import org.trevershick.plebiscite.model.UserStatus;
@@ -21,6 +25,8 @@ public class DynamoDbUser implements User {
 	String credentials;
 	boolean registered;
 	String slug;
+	boolean emailVerified;
+	String verificationToken;
 	UserStatus userStatus = UserStatus.Active;
 	boolean servicesEnabled;
 	private Integer version;
@@ -79,6 +85,9 @@ public class DynamoDbUser implements User {
 	}
 	public void setRegistered(boolean value) {
 		this.registered = value;
+		if (this.registered) {
+			this.verificationToken = null;
+		}
 	}
 
 	@DynamoDBIgnore
@@ -109,10 +118,20 @@ public class DynamoDbUser implements User {
 	public String getCredentials() {
 		return credentials;
 	}
+	
 	public void setCredentials(String credentials) {
 		this.credentials = credentials;
 	}
 
+	
+	@DynamoDBAttribute(attributeName="EmailVerificationToken")
+	public String getVerificationToken() {
+		return verificationToken;
+	}
+	public void setVerificationToken(String verificationToken) {
+		this.verificationToken = verificationToken;
+	}
+	
 	
 	
 	public void setAdmin(boolean value) {
@@ -145,5 +164,36 @@ public class DynamoDbUser implements User {
 	public void addVotedOnBallot(String ballotId) {
 		this.votedOnBallots.add(ballotId);
 	}
-
+	public boolean verificationTokenMatches(String verificationToken) {
+		return StringUtils.equals(verificationToken, this.verificationToken);
+	}
+	
+	public String generateVerificationToken() {
+		this.verificationToken = UUID.randomUUID().toString();
+		return this.verificationToken;
+	}
+	
+	public String generateTemporaryPassword() {
+		SecureRandom r = new SecureRandom();
+		StringBuilder sb = new StringBuilder();
+		for (int i=0;i<8;i++) {
+			int c = (r.nextInt() % 25);
+			sb.append((char) ('a' + c));
+		}
+		String p = sb.toString();
+		return p;
+	}
+	
+	@DynamoDBMarshalling(marshallerClass=YNMarshaller.class)
+	@DynamoDBAttribute(attributeName="EmailVerified")
+	public boolean isEmailVerified() {
+		return emailVerified;
+	}
+	public void setEmailVerified(boolean b) {
+		this.emailVerified = b;
+	}
+	public boolean hasPassword() {
+		return StringUtils.isNotBlank(credentials);
+	}
+	
 }

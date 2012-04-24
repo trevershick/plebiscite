@@ -10,11 +10,18 @@ import com.google.common.base.Predicate;
 
 class UserController {
 
-	static allowedMethods = [login: "GET", doLogin: "POST"]
+	static allowedMethods = [
+		register:"GET",
+		doRegister:"POST", 
+		login: "GET", 
+		doLogin: "POST",
+		logout:"GET"]
 	
 	Engine engine; // number 9
 	
-	def beforeInterceptor = [action:this.&checkUserIsAdmin, except: ['login','doLogin']]
+	def beforeInterceptor = [
+		action:this.&checkUserIsAdmin
+	]
 	
 	def checkUserIsAdmin() {
 		if(!session.user) {
@@ -30,40 +37,6 @@ class UserController {
 		}
 
 	}
-
-	
-	
-	
-	def login() {
-		
-	}
-
-	def logout() {
-		session.user = null
-		redirect (uri:'/')
-	}
-	
-	def doLogin = {
-		def user = null;
-		try {
-			user = engine.authenticate(params.email, params.password);
-			session.user = user
-		} catch ( bue) {
-			
-			flash.error = message(code: 'default.banneduser', default:"You've been banned : " + bue.message)
-			redirect(controller:'user',action:'login')
-			return;
-		}
-		
-		if (user) {
-			redirect(controller:'user',action:'list')
-		} else {
-//			flash.message = message(code: 'default.invalidlogin', default:'Invalid Login')
-			flash.error = message(code: 'default.invalidlogin', default:'Invalid Login')
-			redirect(controller:'user',action:'login')
-		}
-	}
-	
 	def index() {
 		redirect(action: "list", params: params)
 	}
@@ -88,20 +61,7 @@ class UserController {
 		]
 	}
 
-	def create() {
-//		[userInstance: new User(params)]
-	}
 
-	def save() {
-//		def userInstance = new User(params)
-//		if (!userInstance.save(flush: true)) {
-//			render(view: "create", model: [userInstance: userInstance])
-//			return
-//		}
-//
-		flash.message = message(code: 'default.created.message', args: [message(code: 'user.label', default: 'User'), userInstance.id])
-		redirect(action: "show", id: userInstance.id)
-	}
 
 	def show() {
 		

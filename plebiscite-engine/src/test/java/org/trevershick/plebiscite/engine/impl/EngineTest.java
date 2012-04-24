@@ -37,10 +37,6 @@ public class EngineTest extends AWSTest {
 		this.adminUser = svc.createUser("trevershick@yahoo.com");
 	}
 
-	@Test
-	public void add_ballot_already_exists() {
-		fail("not implemented");
-	}
 	
 	@Test(expected=BallotCompletedException.class)
 	public void add_user_to_closed_ballot() throws InvalidDataException, AlreadyExistsException, BallotCompletedException {

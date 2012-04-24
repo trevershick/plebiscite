@@ -1,5 +1,6 @@
 package plebiscite.web
 
+import org.codehaus.groovy.grails.web.mapping.LinkGenerator
 import org.trevershick.plebiscite.engine.*;
 import org.trevershick.plebiscite.model.*;
 
@@ -7,15 +8,22 @@ import com.google.common.base.Predicate;
 
 class BallotController {
     static allowedMethods = [save: "POST", update: "POST", delete: "POST"]
-	def beforeInterceptor = [action:this.&checkUser]
+	def beforeInterceptor = [action: this.&checkUser]
 	
+	LinkGenerator grailsLinkGenerator
 	def checkUser() {
 		if(!session.user) {
 			// i.e. user not logged in
 			redirect(controller:'user',action:'login')
 			return false
 		}
+		if (!session.user.emailVerified) {
+			flash.message = message(code:'please.verify.link', 
+				args:[ grailsLinkGenerator.link(controller:"auth", action:"reverify") ], 
+					default:"Please verify your e-mail <a href=\"{0}\">here</a>" )
+		}
 	}
+	
 	
 	
 	Engine engine;

@@ -43,11 +43,11 @@ public interface DataService {
 	void delete(Ballot ballot);
 	Ballot save(Ballot ballot);
 
-	
 	User createUser(String emailAddress);
 	User save(User ballot);
 	void delete(User user);
 	User getUser(String id);
+	void markEmailVerified(User user);
 	void updateState(User user, UserStatus inactive);
 	void updatePassword(User user, String password);
 	boolean credentialsMatch(User user, String credentials);

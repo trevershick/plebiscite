@@ -269,6 +269,7 @@ public class DynamoDbDataService implements DataService,InitializingBean {
 		DynamoDbUser u = (DynamoDbUser) getUser(user.getEmailAddress());
 		try {
 			u.setCredentials(hash(password));
+			u.setRegistered(true);
 		} catch (Exception e) { 
 			throw Throwables.propagate(e);
 		}
@@ -367,6 +368,19 @@ public class DynamoDbDataService implements DataService,InitializingBean {
 	}
 	private DynamoDBMapper mapper(Class<?> clazz) {
 		return new DynamoDBMapper(db, configFor(clazz));
+	}
+	
+	public void markEmailVerified(User user) {
+		Preconditions.checkArgument(user != null,"user cannot be null");
+		Preconditions.checkArgument(user.getEmailAddress() != null,"user cannot be null");
+		
+		DynamoDbUser u = getUser(user.getEmailAddress());
+		Preconditions.checkNotNull(u);
+		
+		
+		u.setEmailVerified(true);
+		u.setVerificationToken(null);
+		save(u);
 	}
 	
 	
