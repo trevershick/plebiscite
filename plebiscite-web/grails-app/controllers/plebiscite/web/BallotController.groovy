@@ -1,5 +1,9 @@
 package plebiscite.web
 
+import org.trevershick.plebiscite.model.Ballot;
+import org.trevershick.plebiscite.model.User;
+
+
 import org.codehaus.groovy.grails.web.mapping.LinkGenerator
 import org.trevershick.plebiscite.engine.*;
 import org.trevershick.plebiscite.model.*;
@@ -14,7 +18,7 @@ class BallotController {
 	def checkUser() {
 		if(!session.user) {
 			// i.e. user not logged in
-			redirect(controller:'user',action:'login')
+			redirect(controller:'auth',action:'login')
 			return false
 		}
 		if (!session.user.emailVerified) {
@@ -33,17 +37,92 @@ class BallotController {
         redirect(action: "list", params: params)
     }
 
-    def list() {
-        params.max = Math.min(params.max ? params.int('max') : 10, 100)
-		
+	def openballots() {
 		def ballots = []
-		def criteria = new BallotCriteria();
 		def p = new Predicate<Ballot>(){
 			public boolean apply(Ballot b) {
 				ballots += b;
 			}
 		};
-		engine.ballotListForAdmin(session.user, criteria, p);
+		try {
+			engine.ballotsThatAreOpen(p);
+		} catch (SecurityException se) {
+			flash.error = message(code: 'default.security.message', default:"You don't have access to this... sorry.")
+			return redirect(uri:'/')
+		}
+		[
+			ballotInstanceList: ballots,
+			ballotInstanceTotal: ballots.size
+		]
+	}
+	
+	def ivotedon() {
+		def ballots = []
+		def p = new Predicate<Ballot>(){
+			public boolean apply(Ballot b) {
+				ballots += b;
+			}
+		};
+		try {
+			engine.ballotsIVotedOn(session.user, p);
+		} catch (SecurityException se) {
+			flash.error = message(code: 'default.security.message', default:"You don't have access to this... sorry.")
+			return redirect(uri:'/')
+		}
+		[
+			ballotInstanceList: ballots,
+			ballotInstanceTotal: ballots.size
+		]
+
+	}
+
+	
+	def my() {
+		def ballots = []
+		def p = new Predicate<Ballot>(){
+			public boolean apply(Ballot b) {
+				ballots += b;
+			}
+		};
+		try {
+			engine.ballotsIOwn(session.user, p);
+		} catch (SecurityException se) {
+			flash.error = message(code: 'default.security.message', default:"You don't have access to this... sorry.")
+			return redirect(uri:'/')
+		}
+		[
+			ballotInstanceList: ballots,
+			ballotInstanceTotal: ballots.size
+		]
+
+	}
+	
+    def list() {
+        params.max = Math.min(params.max ? params.int('max') : 10, 100)
+		
+		session.states = params.list('states')
+		if (!session.states) session.states = ['Open','Closed'] 
+		
+		
+		def ballots = []
+		def criteria = new BallotCriteria();
+		session.states.each { criteria.addState (BallotState.valueOf(it))}
+		
+		
+		
+		
+		def p = new Predicate<Ballot>(){
+			public boolean apply(Ballot b) {
+				ballots += b;
+			}
+		};
+		try {
+			engine.ballotListForAdmin(session.user, criteria, p);
+		} catch (SecurityException se) {
+			flash.error = message(code: 'default.security.message', default:"You don't have access to this... sorry.")
+			return redirect(uri:'/')
+		}
+		
         [
 			ballotInstanceList: ballots,
 			ballotInstanceTotal: ballots.size
@@ -51,18 +130,20 @@ class BallotController {
     }
 
     def create() {
-        [ballotInstance: new Ballot2(params)]
+
+
     }
 
     def save() {
-        def ballotInstance = new Ballot2(params)
-        if (!ballotInstance.save(flush: true)) {
-            render(view: "create", model: [ballotInstance: ballotInstance])
-            return
-        }
+		def b = engine.createBallot(session.user, params.title)
+		b.setDescription(params.description ?: "No Description");
+		b.openBallot = params.openBallot ?: false
+		b.voteChangeable = params.voteChangeable ?: false
+		b.expirationDate = params.expirationDate
+		engine.updateBallot(session.user, b)
 
-		flash.message = message(code: 'default.created.message', args: [message(code: 'ballot.label', default: 'Ballot'), ballotInstance.id])
-        redirect(action: "show", id: ballotInstance.id)
+		flash.message = message(code: 'default.created.message', args: [message(code: 'ballot.label', default: 'Ballot'), b.id])
+        redirect(action: "edit", id: b.id)
     }
 
     def show() {
@@ -74,20 +155,61 @@ class BallotController {
             return
         }
 
-        [ballotInstance: ballotInstance]
+		def votes = []
+		def p = new Predicate<Vote>(){
+			public boolean apply(Vote b) {
+				votes += b;
+			}
+		};
+		engine.votes(ballotInstance, p);
+		
+        [ballotInstance: ballotInstance,
+			votes: votes]
     }
 
+	def cancel() {
+		def ballot = engine.getBallot(params.id)
+		if (!ballot.owner == session.user.emailAddress) {
+            flash.error = message(code: 'default.notyours.error', args: [message(code: 'ballot.label', default: 'Ballot'), params.id])
+            redirect(action: "show")
+		}
+		
+		engine.cancel(ballot)
+		redirect(action: "list")
+	}
+	
     def edit() {
-        def ballotInstance = dataService.getBallot(params.id);
+        def ballotInstance = engine.getBallot(params.id);
 
         if (!ballotInstance) {
             flash.message = message(code: 'default.not.found.message', args: [message(code: 'ballot.label', default: 'Ballot'), params.id])
             redirect(action: "list")
             return
         }
+		if (request.method == "POST") {
+			apply(ballotInstance)
+		}
+		def votes = []
+		def p = new Predicate<Vote>(){
+			public boolean apply(Vote b) {
+				votes += b;
+			}
+		};
+		engine.votes(ballotInstance, p);
 
-        [ballotInstance: ballotInstance]
+        [ballotInstance: ballotInstance,
+			votes:votes]
     }
+	
+	def apply(ballotInstance) {
+		if (params.email) {
+			engine.addUserToBallot(ballotInstance, params.email, params.emailRequired ? true : false)
+		}
+		params.list('removeEmail').each {
+			engine.removeUserFromBallot(ballotInstance, it)
+		}
+		
+	}
 
     def update() {
         def ballotInstance = dataService.getBallot(params.id);

@@ -156,7 +156,7 @@ public class DynamoDbUser implements User {
 	}
 	public void setBallotsIOwn(Set<String> bs) {
 		this.ballotsIOwn.clear();
-		this.ballotsIOwn.addAll(votedOnBallots);
+		this.ballotsIOwn.addAll(bs);
 	}
 	public void addBallotIOwn(String ballotId) {
 		this.ballotsIOwn.add(ballotId);

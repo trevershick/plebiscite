@@ -24,6 +24,7 @@ public class EmailProducerTest {
 		params.put("verifyLinkParams", vlp);
 		params.put("email", "trevershick@yahoo.com");
 		params.put("token", "abc123");
+		params.put("site", "The Site");
 		
 		
 		Map<String, String> m = p.buildMailMessage("emailverification", params);

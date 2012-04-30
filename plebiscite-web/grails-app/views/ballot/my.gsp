@@ -1,5 +1,4 @@
 
-<%@page import="org.trevershick.plebiscite.model.BallotState"%>
 <%@ page import="org.trevershick.plebiscite.model.Ballot" %>
 <!doctype html>
 <html>
@@ -9,29 +8,17 @@
 		<title><g:message code="default.list.label" args="[entityName]" /></title>
 	</head>
 	<body>
-		<div class="nav" role="navigation">
-			<ul>
-				<li><g:link class="create" action="create"><g:message code="default.new.label" args="[entityName]" /></g:link></li>
-			</ul>
-		</div>
-	
 		<div id="list-ballot" class="content scaffold-list" role="main">
 			<g:render template="/errors"/>
 			<h1><g:message code="default.list.label" args="[entityName]" /></h1>
-			<g:form action="list">
-			
-					<label for="states">
-						<g:message code="ballot.state.label" default="State" />
-					</label>
-					<g:select name="states" from="${['Open','Closed','Cancelled','Accepted','Rejected','TimedOut']}" multiple="true" value="${session.states }"/>
-					<g:actionSubmit value="Search" action="list"/>				
-			
-			</g:form>
+
 			<table>
 				<thead>
 					<tr>
 						<g:sortableColumn property="title" title="${message(code: 'ballot.title.label', default: 'Title')}" />
+					
 						<g:sortableColumn property="description" title="${message(code: 'ballot.description.label', default: 'Description')}" />
+					
 						<g:sortableColumn property="state" title="${message(code: 'ballot.state.label', default: 'State')}" />
 					</tr>
 				</thead>
@@ -48,8 +35,9 @@
 				</g:each>
 				</tbody>
 			</table>
-
-			
+			<div class="pagination">
+				<g:paginate total="${ballotInstanceTotal}" />
+			</div>
 		</div>
 	</body>
 </html>

@@ -85,6 +85,9 @@ public class EngineImpl implements Engine, InitializingBean {
 		Ballot u = this.dataService.getBallot(b.getId());
 		u.setDescription(b.getDescription());
 		u.setTitle(b.getTitle());
+		u.setExpirationDate(b.getExpirationDate());
+		u.setVoteChangeable(b.isVoteChangeable());
+		u.setOpenBallot(b.isOpenBallot());
 		return this.dataService.save(u);
 	}
 
@@ -112,9 +115,11 @@ public class EngineImpl implements Engine, InitializingBean {
 		this.dataService.save(userToAdd);
 		
 		Vote v = dataService.createVote(ballot, userToAdd);
-		v.setRequired(required);
-		this.dataService.save(v);
-		return getUser(emailAddress);
+		if (v != null) {
+			v.setRequired(required);
+			this.dataService.save(v);
+		}
+		return userToAdd;
 		
 		// TODO - need to send email to the voter. t he email  needs to be different if someone is
 		// registered vs not registered
@@ -178,6 +183,7 @@ public class EngineImpl implements Engine, InitializingBean {
 	public void ballotsThatAreOpen(Predicate<Ballot> b) {
 		BallotCriteria bc = new BallotCriteria();
 		bc.addState(BallotState.Open);
+		bc.setOpenBallots(true);
 		this.dataService.ballots(bc, b);
 		
 	}

@@ -26,6 +26,7 @@ public interface Ballot {
 	 * @return
 	 */
 	boolean isOpenBallot();
+	void setOpenBallot(boolean b);
 	/**
 	 * A ballot that allows users to change their vote (before the ballot has closed)
 	 * will return true from this method.

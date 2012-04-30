@@ -7,6 +7,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Formatter;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -30,7 +31,6 @@ import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapperConfig.TableNa
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBQueryExpression;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBScanExpression;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBTable;
-import com.amazonaws.services.dynamodb.datamodeling.PaginatedList;
 import com.amazonaws.services.dynamodb.datamodeling.PaginatedQueryList;
 import com.amazonaws.services.dynamodb.datamodeling.PaginatedScanList;
 import com.amazonaws.services.dynamodb.model.AttributeValue;
@@ -39,6 +39,7 @@ import com.amazonaws.services.dynamodb.model.BatchGetItemResult;
 import com.amazonaws.services.dynamodb.model.BatchResponse;
 import com.amazonaws.services.dynamodb.model.ComparisonOperator;
 import com.amazonaws.services.dynamodb.model.Condition;
+import com.amazonaws.services.dynamodb.model.ConditionalCheckFailedException;
 import com.amazonaws.services.dynamodb.model.DeleteItemRequest;
 import com.amazonaws.services.dynamodb.model.Key;
 import com.amazonaws.services.dynamodb.model.KeysAndAttributes;
@@ -50,6 +51,7 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
 public class DynamoDbDataService implements DataService,InitializingBean {
@@ -128,7 +130,6 @@ public class DynamoDbDataService implements DataService,InitializingBean {
 			save(owner);
 		}
 		
-		updateStateIndex(ballot, ballot.getState(), ballot.getState()); // TODO this is obviously not correct, it doesn't have the previous state
 		return ballot;
 	}
 
@@ -149,10 +150,11 @@ public class DynamoDbDataService implements DataService,InitializingBean {
 //	}
 
 
-	public User save(User user) {
+	public DynamoDbUser save(User user) {
+		DynamoDbUser u = (DynamoDbUser) user;
 		DynamoDBMapper mapper = new DynamoDBMapper(db,configFor(DynamoDbUser.class));
 		mapper.save(user);
-		return user;
+		return u;
 	}
 
 
@@ -207,17 +209,69 @@ public class DynamoDbDataService implements DataService,InitializingBean {
 	}
 
 	
-	public void ballots(BallotCriteria criteria, Predicate<Ballot> callback) {
+	public void ballots(final BallotCriteria criteria, Predicate<Ballot> cb) {
 		Preconditions.checkArgument(criteria != null, "criteria must not be null");
 		DynamoDBScanExpression scanexp = new DynamoDBScanExpression();
 
-				
-		in(scanexp, "State", criteria.getStates(), new Function<BallotState,String>(){
-			public String apply(BallotState input) {
-				return input.name();
-			}
-		});
+		List<Predicate<Ballot>> filters = new ArrayList<Predicate<Ballot>>();
 		
+		if (criteria.hasOpenBallots()) {
+			filters.add(new Predicate<Ballot>(){
+				@Override
+				public boolean apply(Ballot input) {
+					return input.isOpenBallot() == criteria.getOpenBallots();
+				}});
+		}
+		
+		final Predicate<Ballot> filteredCallback = Predicates.and(Predicates.and(filters), cb);
+		
+		
+		if (criteria.getStates().size() > 0) {
+			for (BallotState bs : criteria.getStates()) {
+				DynamoDBQueryExpression query = new DynamoDBQueryExpression(new AttributeValue().withS("Ballot#State#" + bs.name()));
+				PaginatedQueryList<DynamoDbSecondaryIndex> results = mapper(DynamoDbSecondaryIndex.class).query(DynamoDbSecondaryIndex.class, query);
+
+				Iterator<Ballot> ballots = Iterators.transform(results.iterator(), new Function<DynamoDbSecondaryIndex, Ballot>() {
+					@Override
+					public Ballot apply(DynamoDbSecondaryIndex input) {
+						return getBallot(input.getRefId());
+					}
+				});
+				Iterator<Ballot> filtered = Iterators.filter(ballots, Predicates.notNull());
+				while (filtered.hasNext()) {
+					filteredCallback.apply(filtered.next());
+				}
+				
+			}
+			return;
+		}
+//		in(scanexp, "State", criteria.getStates(), new Function<BallotState,String>(){
+//			public String apply(BallotState input) {
+//				return input.name();
+//			}
+//		});
+		
+		
+		if (criteria.getOwners().size() > 0) {
+			for (String owner : criteria.getOwners()) {
+				DynamoDbUser o = getUser(owner);
+				if (o.getBallotsIOwn() == null) continue;
+
+				Iterables.tryFind(
+					Iterables.filter(o.getBallotsIOwn(),Predicates.notNull()), 
+					new Predicate<String>() {
+						@Override
+						public boolean apply(String ballotId) {
+							Ballot b = getBallot(ballotId);
+							if (b != null) {
+								return !filteredCallback.apply(b);
+							} else {
+								return false; // return false to keep iterating ddue to 'tryFind's usage
+							}
+						}}); 
+			}
+			return;
+		}
 
 //		if (scanexp.getScanFilter() == null || scanexp.getScanFilter().isEmpty()) {
 //			scanexp.addFilterCondition(
@@ -229,7 +283,7 @@ public class DynamoDbDataService implements DataService,InitializingBean {
 		PaginatedScanList<DynamoDbBallot> list = new DynamoDBMapper(db,configFor(DynamoDbBallot.class)).scan(
 				DynamoDbBallot.class, scanexp);
 		
-		applyWhileTrue(callback, list);
+		applyWhileTrue(filteredCallback, list);
 	}
 	
 	
@@ -253,10 +307,13 @@ public class DynamoDbDataService implements DataService,InitializingBean {
 		applyWhileTrue(vote, query);
 	}
 
-	public void updateState(Ballot u, BallotState cancelled) {
+	public void updateState(Ballot u, BallotState st) {
 		DynamoDbBallot b = (DynamoDbBallot) getBallot(u.getId());
-		b.setState(cancelled);
+		BallotState previousState = b.getState();
+
+		b.setState(st);
 		save(b);
+		updateStateIndex(b, previousState, st); // TODO this is obviously not correct, it doesn't have the previous state
 	}
 	
 	public void updateState(User user, UserStatus inactive) {
@@ -306,7 +363,7 @@ public class DynamoDbDataService implements DataService,InitializingBean {
 	
 	
 	private <A> void applyWhileTrue(Predicate<? super A> callback,
-			List<A> list) {
+			Iterable<A> list) {
 		Iterables.tryFind(list, Predicates.not(callback));
 	}
 
@@ -353,10 +410,14 @@ public class DynamoDbDataService implements DataService,InitializingBean {
 	}
 	
 	public Vote createVote(Ballot ballot, User user) {
-		DynamoDbVote v = new DynamoDbVote();
-		v.setBallotId(ballot.getId());
-		v.setUserId(user.getEmailAddress());
-		return v;
+		try {
+			DynamoDbVote v = new DynamoDbVote();
+			v.setBallotId(ballot.getId());
+			v.setUserId(user.getEmailAddress());
+			return v;
+		} catch (ConditionalCheckFailedException c){
+			return null;
+		}
 	}
 	
 	public Vote save(Vote vote) {

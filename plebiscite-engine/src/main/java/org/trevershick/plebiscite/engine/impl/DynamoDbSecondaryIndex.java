@@ -21,7 +21,7 @@ public class DynamoDbSecondaryIndex {
 	private String value;
 	private String refId;
 
-
+	public DynamoDbSecondaryIndex() {}
 	public DynamoDbSecondaryIndex(String entity, String column, String value, String refId) {
 		this.entity = entity;
 		this.column = column;

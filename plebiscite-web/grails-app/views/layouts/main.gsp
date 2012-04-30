@@ -19,6 +19,8 @@
 	</head>
 	<body>
 		<div id="grailsLogo" role="banner"><g:link uri="/"><h1>Plebiscite</h1></g:link></div>
+		<g:render template="/menus"/>
+		
 		<g:layoutBody/>
 		<div class="footer" role="contentinfo"></div>
 		<div id="spinner" class="spinner" style="display:none;"><g:message code="spinner.alt" default="Loading&hellip;"/></div>

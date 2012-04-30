@@ -10,6 +10,7 @@ public class BallotCriteria {
 	private Set<BallotState> states = new HashSet<BallotState>();
 	private Set<String> owners = new HashSet<String>();
 	private Set<String> voters = new HashSet<String>();
+	private Boolean openBallots;
 	
 	
 	public BallotCriteria addState(BallotState state) {
@@ -52,6 +53,15 @@ public class BallotCriteria {
 	public BallotCriteria addVoter(String emailAddress) {
 		this.voters.add(emailAddress);
 		return this;
+	}
+	public boolean hasOpenBallots(){ 
+		return this.openBallots != null;
+	}
+	public void setOpenBallots(boolean b) {
+		this.openBallots = b;
+	}
+	public boolean getOpenBallots() {
+		return this.openBallots.booleanValue();
 	}
 
 }
