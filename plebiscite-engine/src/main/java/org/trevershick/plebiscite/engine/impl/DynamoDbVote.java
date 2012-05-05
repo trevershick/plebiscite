@@ -1,5 +1,7 @@
 package org.trevershick.plebiscite.engine.impl;
 
+import java.util.Date;
+
 import org.trevershick.plebiscite.model.Vote;
 import org.trevershick.plebiscite.model.VoteType;
 
@@ -17,9 +19,10 @@ public class DynamoDbVote implements Vote {
 	private String ballotId;
 	private String userId;
 	private boolean required;
-	private VoteType type;
+	private VoteType type = VoteType.None;
 	private String comments;
 	private Integer version;
+	private Date when;
 	
 	@DynamoDBHashKey(attributeName = "BallotId")
 	public String getBallotId() {
@@ -75,6 +78,34 @@ public class DynamoDbVote implements Vote {
 
 	public void setBallotId(String ballotId) {
 		this.ballotId = ballotId;
+	}
+
+
+    @DynamoDBMarshalling(marshallerClass=DateTimeMarshaller.class)
+	@DynamoDBAttribute(attributeName="When")
+	public Date getWhen() {
+		return this.when;
+	}
+	public void setWhen(Date d) {
+		this.when = d;
+	}
+	@Override
+	public Date when() {
+		return when;
+	}
+
+
+
+	public DynamoDbVote withType(VoteType yay) {
+		setType(yay);
+		return this;
+	}
+
+
+
+	public Vote withRequired(boolean b) {
+		setRequired(b);
+		return this;
 	}
     
     

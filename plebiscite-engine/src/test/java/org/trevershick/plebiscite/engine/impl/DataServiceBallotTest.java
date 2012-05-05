@@ -1,8 +1,10 @@
 package org.trevershick.plebiscite.engine.impl;
 
+import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -11,7 +13,11 @@ import org.junit.Before;
 import org.junit.Test;
 import org.trevershick.plebiscite.engine.BallotCriteria;
 import org.trevershick.plebiscite.model.Ballot;
+import org.trevershick.plebiscite.model.BallotClosePolicy;
 import org.trevershick.plebiscite.model.BallotState;
+import org.trevershick.plebiscite.model.QuorumClosePolicy;
+import org.trevershick.plebiscite.model.SuperUserClosePolicy;
+import org.trevershick.plebiscite.model.TimeoutPolicy;
 
 import com.amazonaws.services.dynamodb.model.AttributeValue;
 import com.amazonaws.services.dynamodb.model.DeleteItemRequest;
@@ -19,6 +25,7 @@ import com.amazonaws.services.dynamodb.model.Key;
 import com.amazonaws.services.dynamodb.model.QueryRequest;
 import com.amazonaws.services.dynamodb.model.QueryResult;
 import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 
 public class DataServiceBallotTest extends AWSTest {
 
@@ -143,4 +150,56 @@ public class DataServiceBallotTest extends AWSTest {
 
 	}
 
+	
+	@Test
+	public void test_create_save_with_policy() {
+		
+		DynamoDbBallot b = svc.createBallot();
+		b.setTitle("Test " + System.currentTimeMillis());
+		b.setState(BallotState.Open);
+		b.setExpirationDate(new Date(System.currentTimeMillis() + (1000 * 60 * 60 * 24)));
+		b.addPolicy(new TimeoutPolicy().withStateOnTimeout(BallotState.Accepted));
+		b.addPolicy(new SuperUserClosePolicy().withAcceptOnYes(true).withRejectOnNo(true).withUser("trevershick@gmail.com"));
+		b.addPolicy(new QuorumClosePolicy().withNumberRequired(3).withRequiredVotersOnly(true));
+		svc.save(b);
+		
+		Ballot ballot = svc.getBallot(b.getId());
+		Collection<BallotClosePolicy> policies = ballot.getPolicies();
+		assertEquals(b.getTitle(), ballot.getTitle());
+		assertEquals(BallotState.Open, ballot.getState());
+		assertTrue("Should hvae saved/restored the timeout policy", Iterables.any(policies, new Predicate<BallotClosePolicy>() {
+			@Override
+			public boolean apply(BallotClosePolicy input) {
+				return (input instanceof TimeoutPolicy) 
+						&& (((TimeoutPolicy)input).getStateOnTimeout() == BallotState.Accepted);
+			}
+		}));
+		assertTrue("Should hvae saved/restored the su policy", Iterables.any(policies, new Predicate<BallotClosePolicy>() {
+			@Override
+			public boolean apply(BallotClosePolicy input) {
+				return (input instanceof SuperUserClosePolicy) 
+						&& (((SuperUserClosePolicy)input).getAcceptOnYes() == true)
+						&& (((SuperUserClosePolicy)input).getRejectOnNo() == true)
+						&& (((SuperUserClosePolicy)input).getUser().equals("trevershick@gmail.com"));
+			}
+		}));
+		assertTrue("Should hvae saved/restored the su policy", Iterables.any(policies, new Predicate<BallotClosePolicy>() {
+			@Override
+			public boolean apply(BallotClosePolicy input) {
+				return (input instanceof SuperUserClosePolicy) 
+						&& (((SuperUserClosePolicy)input).getAcceptOnYes() == true)
+						&& (((SuperUserClosePolicy)input).getRejectOnNo() == true)
+						&& (((SuperUserClosePolicy)input).getUser().equals("trevershick@gmail.com"));
+			}
+		}));
+		assertTrue("Should hvae saved/restored the quorum policy", Iterables.any(policies, new Predicate<BallotClosePolicy>() {
+			@Override
+			public boolean apply(BallotClosePolicy input) {
+				return (input instanceof QuorumClosePolicy) 
+						&& (((QuorumClosePolicy)input).getNumberRequired() == 3)
+						&& (((QuorumClosePolicy)input).isRequiredVotersOnly() == true);
+			}
+		}));
+		
+	}
 }

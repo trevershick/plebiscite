@@ -2,6 +2,7 @@ package org.trevershick.plebiscite.model;
 
 import java.util.Collection;
 import java.util.Date;
+import java.util.List;
 
 
 
@@ -45,6 +46,9 @@ public interface Ballot {
 	 */
 	boolean expires();
 	
-	Collection<BallotClosePolicy> getClosePolicies();
+	Collection<BallotClosePolicy> getPolicies();
+	void addPolicy(BallotClosePolicy p);
 	boolean isComplete();
+	Ballot tallyVotes(Collection<Vote> vs);
+	void setPolicies(Collection<BallotClosePolicy> policies);
 }

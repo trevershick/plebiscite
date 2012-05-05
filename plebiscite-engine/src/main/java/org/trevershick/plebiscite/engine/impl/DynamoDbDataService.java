@@ -5,6 +5,7 @@ import java.lang.reflect.Method;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Formatter;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -22,6 +23,7 @@ import org.trevershick.plebiscite.model.BallotState;
 import org.trevershick.plebiscite.model.User;
 import org.trevershick.plebiscite.model.UserStatus;
 import org.trevershick.plebiscite.model.Vote;
+import org.trevershick.plebiscite.model.VoteType;
 
 import com.amazonaws.services.dynamodb.AmazonDynamoDB;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBHashKey;
@@ -409,11 +411,13 @@ public class DynamoDbDataService implements DataService,InitializingBean {
 		return vote;
 	}
 	
-	public Vote createVote(Ballot ballot, User user) {
+	public Vote createVote(Ballot ballot, User user, VoteType vote) {
 		try {
 			DynamoDbVote v = new DynamoDbVote();
 			v.setBallotId(ballot.getId());
 			v.setUserId(user.getEmailAddress());
+			v.setType(vote);
+			v.setWhen(new Date());
 			return v;
 		} catch (ConditionalCheckFailedException c){
 			return null;

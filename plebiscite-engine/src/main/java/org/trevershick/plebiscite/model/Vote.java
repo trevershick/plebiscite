@@ -1,5 +1,7 @@
 package org.trevershick.plebiscite.model;
 
+import java.util.Date;
+
 public interface Vote {
 	VoteType getType();
 	void setType(VoteType vote);
@@ -9,4 +11,5 @@ public interface Vote {
 	String getUserId();
 	boolean isRequired();
 	void setRequired(boolean b);
+	Date when();
 }

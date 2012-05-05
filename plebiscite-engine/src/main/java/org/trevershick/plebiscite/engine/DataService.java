@@ -5,6 +5,7 @@ import org.trevershick.plebiscite.model.BallotState;
 import org.trevershick.plebiscite.model.User;
 import org.trevershick.plebiscite.model.UserStatus;
 import org.trevershick.plebiscite.model.Vote;
+import org.trevershick.plebiscite.model.VoteType;
 
 import com.google.common.base.Predicate;
 
@@ -26,7 +27,7 @@ public interface DataService {
 	
 	void delete(Vote vote);
 	Vote getVote(Ballot ballot, User user);
-	Vote createVote(Ballot ballot, User user);
+	Vote createVote(Ballot ballot, User user, VoteType vote);
 	Vote save(Vote vote);
 	
 	

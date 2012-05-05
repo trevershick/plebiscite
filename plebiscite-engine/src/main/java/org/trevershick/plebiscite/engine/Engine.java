@@ -62,5 +62,7 @@ public interface Engine {
 	Ballot getBallot(String ballotId);
 	void votes(Ballot ballot, Predicate<Vote> vote);
 	void votes(User forUser, Predicate<Vote> vote);
+	
+	void vote(Ballot onBallot, User votingUser, VoteType vote);
 
 }

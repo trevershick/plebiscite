@@ -1,6 +1,8 @@
 package org.trevershick.plebiscite.engine.impl;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.InitializingBean;
@@ -15,6 +17,7 @@ import org.trevershick.plebiscite.engine.InvalidDataException;
 import org.trevershick.plebiscite.engine.QueueingService;
 import org.trevershick.plebiscite.engine.UserCriteria;
 import org.trevershick.plebiscite.model.Ballot;
+import org.trevershick.plebiscite.model.BallotClosePolicy;
 import org.trevershick.plebiscite.model.BallotState;
 import org.trevershick.plebiscite.model.User;
 import org.trevershick.plebiscite.model.UserStatus;
@@ -24,6 +27,7 @@ import org.trevershick.plebiscite.model.VoteType;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Throwables;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 
 public class EngineImpl implements Engine, InitializingBean {
@@ -88,6 +92,7 @@ public class EngineImpl implements Engine, InitializingBean {
 		u.setExpirationDate(b.getExpirationDate());
 		u.setVoteChangeable(b.isVoteChangeable());
 		u.setOpenBallot(b.isOpenBallot());
+		u.setPolicies(b.getPolicies());
 		return this.dataService.save(u);
 	}
 
@@ -114,7 +119,7 @@ public class EngineImpl implements Engine, InitializingBean {
 		User userToAdd = this.dataService.createUser(emailAddress);
 		this.dataService.save(userToAdd);
 		
-		Vote v = dataService.createVote(ballot, userToAdd);
+		Vote v = dataService.createVote(ballot, userToAdd,VoteType.None);
 		if (v != null) {
 			v.setRequired(required);
 			this.dataService.save(v);
@@ -331,6 +336,37 @@ public class EngineImpl implements Engine, InitializingBean {
 			throw Throwables.propagate(e);
 		}
 		
+	}
+
+	@Override
+	public void vote(Ballot onBallot, User votingUser, VoteType vote) {
+		Ballot ballot = getBallot(onBallot.getId());
+		if (ballot.isComplete()) {
+			return;
+		}
+		Vote v = dataService.getVote(onBallot, votingUser);
+		if (v != null && (v.getType().isNone() || ballot.isVoteChangeable())) {
+			v.setType(vote);
+			dataService.save(v);
+		} else {
+			v = dataService.createVote(ballot, votingUser, vote);
+		}
+		final List<Vote> vs = new ArrayList<Vote>();
+		votes(ballot, new Predicate<Vote>() {
+			@Override
+			public boolean apply(Vote input) {
+				vs.add(input);
+				return true;
+			}
+		});
+		BallotState currentState = ballot.getState();
+		BallotState newState = ballot.tallyVotes(vs).getState();
+		if (newState.equals(currentState)) {
+			return;
+		}
+		// TODO - notify of state change for the ballot
+		dataService.save(ballot);
+
 	}
 
 	

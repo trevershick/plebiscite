@@ -16,8 +16,11 @@ import org.trevershick.plebiscite.engine.BallotCriteria;
 import org.trevershick.plebiscite.engine.Engine;
 import org.trevershick.plebiscite.engine.InvalidDataException;
 import org.trevershick.plebiscite.model.Ballot;
+import org.trevershick.plebiscite.model.BallotState;
+import org.trevershick.plebiscite.model.QuorumClosePolicy;
 import org.trevershick.plebiscite.model.User;
 import org.trevershick.plebiscite.model.Vote;
+import org.trevershick.plebiscite.model.VoteType;
 
 import com.google.common.base.Predicate;
 
@@ -148,6 +151,33 @@ public class EngineTest extends AWSTest {
 		engine.ballotsThatAreOpen(p);
 		assertNotNull(ballot1Ref.get());
 		assertNull(ballot2Ref.get());
+
+	}
+	
+	@Test
+	public void test_the_vote() throws InvalidDataException, AlreadyExistsException, BallotCompletedException {
+		DynamoDbUser u = svc.getUser("tshick@hotmail.com");
+		if (u != null) {
+			this.svc.delete(u);	
+		}
+		
+		Ballot b = engine.createBallot(adminUser, "Test Ballot 1");
+		b.addPolicy(new QuorumClosePolicy().withNumberRequired(1).withRequiredVotersOnly(true));
+		engine.updateBallot(adminUser, b);
+		
+		User u2 = engine.addUserToBallot(b, "tshick@hotmail.com", true);
+		User u3 = engine.addUserToBallot(b, "trevershick@yahoo.com", false);
+		engine.open(b);
+		assertEquals(BallotState.Open, engine.getBallot(b.getId()).getState());
+		
+		engine.vote(b, u3, VoteType.Yay);
+		assertEquals(BallotState.Open, engine.getBallot(b.getId()).getState());
+		
+		// the 'required' voter has voted and quorum only rquires one required voter
+		engine.vote(b, u2, VoteType.Yay);
+		assertEquals(BallotState.Accepted, engine.getBallot(b.getId()).getState());
+		
+		
 
 	}
 
