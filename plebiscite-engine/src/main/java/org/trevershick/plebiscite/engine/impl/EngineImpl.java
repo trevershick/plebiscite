@@ -204,10 +204,28 @@ public class EngineImpl implements Engine, InitializingBean {
 		}
 	}
 	
-	public void ballotsIVotedOn(User user, Predicate<Ballot> b) {
-		BallotCriteria bc = new BallotCriteria();
-		bc.addVoter(user.getEmailAddress());
-		this.dataService.ballots(bc, b);
+	public void ballotsIVotedOn(User user, final Predicate<Ballot> b) {
+		final List<Vote> votes = new ArrayList<Vote>();
+		this.dataService.votes(user, new Predicate<Vote>() {
+			@Override
+			public boolean apply(Vote input) {
+				votes.add(input);
+				return true;
+			}});
+		Iterable<Vote> votesonly = Iterables.filter(votes, new Predicate<Vote>() {
+			@Override
+			public boolean apply(Vote input) {
+				return input.getType().isAVote() ;
+			}
+		});
+		Iterable<Ballot> ballots =Iterables.filter( Iterables.transform(votesonly, new Function<Vote,Ballot>(){
+			@Override
+			public Ballot apply(Vote input) {
+				return dataService.getBallot(input.getBallotId());
+			} }), Predicates.notNull());
+		for (Ballot bal : ballots) {
+			b.apply(bal);
+		}
 	}
 
 	public void ballotsThatAreOpen(Predicate<Ballot> b) {

@@ -217,4 +217,44 @@ public class EngineTest extends AWSTest {
 
 	}
 
+	
+	
+	
+	
+	@Test
+	public void test_ballots_i_voted_on() throws InvalidDataException, AlreadyExistsException, BallotCompletedException {
+		DynamoDbUser u = svc.getUser("tshick@hotmail.com");
+		if (u != null) {
+			this.svc.delete(u);	
+		}
+		
+		Ballot b = engine.createBallot(adminUser, "Test Ballot 1");
+		b.addPolicy(new QuorumClosePolicy().withNumberRequired(1).withRequiredVotersOnly(true));
+		engine.updateBallot(adminUser, b);
+		
+		User u2 = engine.addUserToBallot(b, "tshick@hotmail.com", true);
+
+		final List<Ballot> bs = new ArrayList<Ballot>();
+		engine.ballotsIVotedOn(u2, new Predicate<Ballot>() {
+			@Override
+			public boolean apply(Ballot input) {
+				bs.add(input);
+				return true;
+			}});
+		assertFalse(bs.contains(b));
+
+		
+		engine.vote(b, u2, VoteType.Nay);
+		
+		bs.clear();
+		engine.ballotsIVotedOn(u2, new Predicate<Ballot>() {
+			@Override
+			public boolean apply(Ballot input) {
+				bs.add(input);
+				return true;
+			}});
+		assertTrue(bs.contains(b));
+
+	}
+
 }
