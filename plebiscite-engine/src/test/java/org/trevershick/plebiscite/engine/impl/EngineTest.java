@@ -2,10 +2,12 @@ package org.trevershick.plebiscite.engine.impl;
 
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.fail;
 import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.Before;
@@ -178,6 +180,40 @@ public class EngineTest extends AWSTest {
 		assertEquals(BallotState.Accepted, engine.getBallot(b.getId()).getState());
 		
 		
+
+	}
+
+	@Test
+	public void test_votes_i_need_to_vote_on() throws InvalidDataException, AlreadyExistsException, BallotCompletedException {
+		DynamoDbUser u = svc.getUser("tshick@hotmail.com");
+		if (u != null) {
+			this.svc.delete(u);	
+		}
+		
+		Ballot b = engine.createBallot(adminUser, "Test Ballot 1");
+		b.addPolicy(new QuorumClosePolicy().withNumberRequired(1).withRequiredVotersOnly(true));
+		engine.updateBallot(adminUser, b);
+		
+		User u2 = engine.addUserToBallot(b, "tshick@hotmail.com", true);
+		User u3 = engine.addUserToBallot(b, "trevershick@yahoo.com", false);
+
+		final List<Ballot> bs = new ArrayList<Ballot>();
+		engine.ballotsINeedToVoteOn(u2, new Predicate<Ballot>() {
+			@Override
+			public boolean apply(Ballot input) {
+				bs.add(input);
+				return true;
+			}});
+		assertTrue(bs.contains(b));
+
+		bs.clear();
+		engine.ballotsINeedToVoteOn(u3, new Predicate<Ballot>() {
+			@Override
+			public boolean apply(Ballot input) {
+				bs.add(input);
+				return true;
+			}});
+		assertFalse(bs.contains(b));
 
 	}
 

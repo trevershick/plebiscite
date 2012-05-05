@@ -33,6 +33,7 @@ public interface Engine {
 	void ballotsIOwn(User user, Predicate<Ballot> b);
 	void ballotsIVotedOn(User user,Predicate<Ballot> b);
 	void ballotsThatAreOpen(Predicate<Ballot> b);
+	void ballotsINeedToVoteOn(User user, Predicate<Ballot> b);
 	/**
 	 * Iterate over the open ballots and find timed out ballots
 	 */

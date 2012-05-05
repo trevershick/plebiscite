@@ -23,9 +23,12 @@ import org.trevershick.plebiscite.model.UserStatus;
 import org.trevershick.plebiscite.model.Vote;
 import org.trevershick.plebiscite.model.VoteType;
 
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.base.Throwables;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 
 public class EngineImpl implements Engine, InitializingBean {
@@ -177,6 +180,30 @@ public class EngineImpl implements Engine, InitializingBean {
 		this.dataService.ballots(bc, b);
 	}
 
+	public void ballotsINeedToVoteOn(User user, Predicate<Ballot> b) {
+		final List<Vote> votes = new ArrayList<Vote>();
+		this.dataService.votes(user, new Predicate<Vote>() {
+			@Override
+			public boolean apply(Vote input) {
+				votes.add(input);
+				return true;
+			}});
+		Iterable<Vote> nonvotes = Iterables.filter(votes, new Predicate<Vote>() {
+			@Override
+			public boolean apply(Vote input) {
+				return input.getType().isNone() && input.isRequired();
+			}
+		});
+		Iterable<Ballot> ballots =Iterables.filter( Iterables.transform(nonvotes, new Function<Vote,Ballot>(){
+			@Override
+			public Ballot apply(Vote input) {
+				return dataService.getBallot(input.getBallotId());
+			} }), Predicates.notNull());
+		for (Ballot bal : ballots) {
+			b.apply(bal);
+		}
+	}
+	
 	public void ballotsIVotedOn(User user, Predicate<Ballot> b) {
 		BallotCriteria bc = new BallotCriteria();
 		bc.addVoter(user.getEmailAddress());
