@@ -6,8 +6,6 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.builder.EqualsBuilder;
-import org.trevershick.plebiscite.model.Ballot;
 import org.trevershick.plebiscite.model.User;
 import org.trevershick.plebiscite.model.UserStatus;
 
@@ -18,7 +16,6 @@ import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMarshalling;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBTable;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBVersionAttribute;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Sets;
 @DynamoDBTable(tableName="Users")
 public class DynamoDbUser implements User {
 	String emailAddress;

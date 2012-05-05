@@ -3,7 +3,6 @@ package org.trevershick.plebiscite.model;
 import java.util.Collection;
 
 import org.codehaus.jackson.annotate.JsonIgnore;
-import org.codehaus.jackson.annotate.JsonProperty;
 
 import com.amazonaws.util.json.JSONException;
 import com.amazonaws.util.json.JSONObject;

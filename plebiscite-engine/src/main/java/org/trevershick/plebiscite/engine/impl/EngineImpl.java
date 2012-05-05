@@ -17,7 +17,6 @@ import org.trevershick.plebiscite.engine.InvalidDataException;
 import org.trevershick.plebiscite.engine.QueueingService;
 import org.trevershick.plebiscite.engine.UserCriteria;
 import org.trevershick.plebiscite.model.Ballot;
-import org.trevershick.plebiscite.model.BallotClosePolicy;
 import org.trevershick.plebiscite.model.BallotState;
 import org.trevershick.plebiscite.model.User;
 import org.trevershick.plebiscite.model.UserStatus;
@@ -27,7 +26,6 @@ import org.trevershick.plebiscite.model.VoteType;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Throwables;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 
 public class EngineImpl implements Engine, InitializingBean {
