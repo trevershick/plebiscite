@@ -106,9 +106,6 @@ public class DataServiceBallotTest extends AWSTest {
 		DynamoDbBallot b = svc.createBallot();
 		b.setTitle("Test " + System.currentTimeMillis());
 		b.setState(BallotState.Open);
-		b.setExpirationDate(new Date(System.currentTimeMillis() + (1000 * 60 * 60 * 24)));
-//		b.addClosePolicy(new QuorumClosePolicy(5,false));
-//		b.addClosePolicy(new SuperUserClosePolicy());
 		svc.save(b);
 
 		b = svc.createBallot();

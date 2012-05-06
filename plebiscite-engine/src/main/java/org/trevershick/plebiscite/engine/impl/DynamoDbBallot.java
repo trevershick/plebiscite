@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
+import org.apache.commons.lang.builder.CompareToBuilder;
 import org.trevershick.plebiscite.model.Ballot;
 import org.trevershick.plebiscite.model.BallotClosePolicy;
 import org.trevershick.plebiscite.model.BallotState;
@@ -20,7 +21,7 @@ import com.amazonaws.services.dynamodb.datamodeling.DynamoDBTable;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBVersionAttribute;
 
 @DynamoDBTable(tableName="Ballots")
-public class DynamoDbBallot implements Ballot {
+public class DynamoDbBallot implements Ballot, Comparable<DynamoDbBallot>{
 	private String id;
 	private String title;
 	private String description;
@@ -207,6 +208,10 @@ public class DynamoDbBallot implements Ballot {
 		} else if (!id.equals(other.id))
 			return false;
 		return true;
+	}
+	@Override
+	public int compareTo(DynamoDbBallot o) {
+		return new CompareToBuilder().append(this.id, o.id).toComparison();
 	}
 	
     

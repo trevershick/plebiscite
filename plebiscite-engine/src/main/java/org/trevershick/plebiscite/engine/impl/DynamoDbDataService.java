@@ -12,6 +12,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.util.Assert;
@@ -43,6 +44,9 @@ import com.amazonaws.services.dynamodb.model.ComparisonOperator;
 import com.amazonaws.services.dynamodb.model.Condition;
 import com.amazonaws.services.dynamodb.model.ConditionalCheckFailedException;
 import com.amazonaws.services.dynamodb.model.DeleteItemRequest;
+import com.amazonaws.services.dynamodb.model.DeleteItemResult;
+import com.amazonaws.services.dynamodb.model.GetItemRequest;
+import com.amazonaws.services.dynamodb.model.GetItemResult;
 import com.amazonaws.services.dynamodb.model.Key;
 import com.amazonaws.services.dynamodb.model.KeysAndAttributes;
 import com.amazonaws.services.dynamodb.model.PutItemRequest;
@@ -82,14 +86,24 @@ public class DynamoDbDataService implements DataService,InitializingBean {
 		return env.qualifyTableName(tableName);
 	}
 	
-	private void updateStateIndex(Ballot ballot, BallotState prev, BallotState curr) {
-		Key prevIndex = new DynamoDbSecondaryIndex("Ballot", "State", prev.name(), ballot.getId()).getKey();
-		Map<String, AttributeValue> currIndex = new DynamoDbSecondaryIndex("Ballot", "State", curr.name(), ballot.getId()).getMap();
+	private void updateStateIndex(Ballot ballot, BallotState newState) {
 		
-		db.putItem(new PutItemRequest().withTableName(tableName("SecondaryIndex")).withItem(currIndex));
-		if (curr != prev) {
-			db.deleteItem(new DeleteItemRequest().withTableName(tableName("SecondaryIndex")).withKey(prevIndex));
+		boolean existing = db.getItem(new GetItemRequest(
+				tableName(DynamoDbSecondaryIndex.class), 
+				new DynamoDbSecondaryIndex("Ballot", "State", newState.name(), ballot.getId()).getKey())
+		).getItem() != null;
+		
+		if (existing) {
+			return;
 		}
+		for (BallotState bs : BallotState.values()) {
+			if (bs == ballot.getState()) continue;
+			Key index = new DynamoDbSecondaryIndex("Ballot", "State", bs.name(), ballot.getId()).getKey();
+			DeleteItemResult r = db.deleteItem(new DeleteItemRequest().withTableName(tableName("SecondaryIndex")).withKey(index));
+		}
+
+		Map<String, AttributeValue> currIndex = new DynamoDbSecondaryIndex("Ballot", "State", ballot.getState().name(), ballot.getId()).getMap();
+		db.putItem(new PutItemRequest().withTableName(tableName("SecondaryIndex")).withItem(currIndex));
 	}
 	
 	
@@ -131,6 +145,7 @@ public class DynamoDbDataService implements DataService,InitializingBean {
 			owner.addBallotIOwn(ballot.getId());
 			save(owner);
 		}
+		this.updateStateIndex(ballot, ballot.getState());
 		
 		return ballot;
 	}
@@ -225,10 +240,11 @@ public class DynamoDbDataService implements DataService,InitializingBean {
 				}});
 		}
 		
-		final Predicate<Ballot> filteredCallback = Predicates.and(Predicates.and(filters), cb);
+		final Predicate<Ballot> filteredCallback = filters.isEmpty() ? cb : Predicates.and(Predicates.and(filters), cb);
 		
 		
 		if (criteria.getStates().size() > 0) {
+			Set<Ballot> ballotset = new TreeSet<Ballot>();
 			for (BallotState bs : criteria.getStates()) {
 				DynamoDBQueryExpression query = new DynamoDBQueryExpression(new AttributeValue().withS("Ballot#State#" + bs.name()));
 				PaginatedQueryList<DynamoDbSecondaryIndex> results = mapper(DynamoDbSecondaryIndex.class).query(DynamoDbSecondaryIndex.class, query);
@@ -241,9 +257,12 @@ public class DynamoDbDataService implements DataService,InitializingBean {
 				});
 				Iterator<Ballot> filtered = Iterators.filter(ballots, Predicates.notNull());
 				while (filtered.hasNext()) {
-					filteredCallback.apply(filtered.next());
+					ballotset.add(filtered.next());
 				}
 				
+			}
+			for (Ballot ballot : ballotset) {
+				filteredCallback.apply(ballot);
 			}
 			return;
 		}
@@ -315,7 +334,7 @@ public class DynamoDbDataService implements DataService,InitializingBean {
 
 		b.setState(st);
 		save(b);
-		updateStateIndex(b, previousState, st); // TODO this is obviously not correct, it doesn't have the previous state
+		updateStateIndex(b, st); // TODO this is obviously not correct, it doesn't have the previous state
 	}
 	
 	public void updateState(User user, UserStatus inactive) {
