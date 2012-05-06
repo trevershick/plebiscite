@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentMap;
 
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.util.Assert;
@@ -29,6 +30,7 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.MapMaker;
 import com.google.common.collect.Maps;
 
 public class EngineImpl implements Engine, InitializingBean {
@@ -180,7 +182,8 @@ public class EngineImpl implements Engine, InitializingBean {
 		this.dataService.ballots(bc, b);
 	}
 
-	public void ballotsINeedToVoteOn(User user, Predicate<Ballot> b) {
+	@Override
+	public void ballotsINeedToVoteOn(User user,Predicate<Map<Ballot,Vote>> b) {
 		final List<Vote> votes = new ArrayList<Vote>();
 		this.dataService.votes(user, new Predicate<Vote>() {
 			@Override
@@ -194,17 +197,22 @@ public class EngineImpl implements Engine, InitializingBean {
 				return input.getType().isNone() && input.isRequired();
 			}
 		});
-		Iterable<Ballot> ballots =Iterables.filter( Iterables.transform(nonvotes, new Function<Vote,Ballot>(){
+		Iterable<Map<Ballot,Vote>> ballots = Iterables.transform(nonvotes, new Function<Vote,Map<Ballot,Vote>>(){
 			@Override
-			public Ballot apply(Vote input) {
-				return dataService.getBallot(input.getBallotId());
-			} }), Predicates.notNull());
-		for (Ballot bal : ballots) {
+			public Map<Ballot,Vote> apply(Vote input) {
+				Map<Ballot, Vote> m = new MapMaker().initialCapacity(1).makeMap();
+				Ballot b = dataService.getBallot(input.getBallotId());
+				if (b != null) {
+					m.put(b, input);
+				}
+				return m;
+				} });
+		for (Map<Ballot,Vote> bal : ballots) {
 			b.apply(bal);
 		}
 	}
 	
-	public void ballotsIVotedOn(User user, final Predicate<Ballot> b) {
+	public void ballotsIVotedOn(User user,Predicate<Map<Ballot,Vote>> b) {
 		final List<Vote> votes = new ArrayList<Vote>();
 		this.dataService.votes(user, new Predicate<Vote>() {
 			@Override
@@ -218,12 +226,17 @@ public class EngineImpl implements Engine, InitializingBean {
 				return input.getType().isAVote() ;
 			}
 		});
-		Iterable<Ballot> ballots =Iterables.filter( Iterables.transform(votesonly, new Function<Vote,Ballot>(){
+		Iterable<Map<Ballot,Vote>> ballots = Iterables.transform(votesonly, new Function<Vote,Map<Ballot,Vote>>(){
 			@Override
-			public Ballot apply(Vote input) {
-				return dataService.getBallot(input.getBallotId());
-			} }), Predicates.notNull());
-		for (Ballot bal : ballots) {
+			public Map<Ballot,Vote> apply(Vote input) {
+				Map<Ballot, Vote> m = new MapMaker().initialCapacity(1).makeMap();
+				Ballot b = dataService.getBallot(input.getBallotId());
+				if (b != null) {
+					m.put(b, input);
+				}
+				return m;
+				} });
+		for (Map<Ballot,Vote> bal : ballots) {
 			b.apply(bal);
 		}
 	}
@@ -391,8 +404,11 @@ public class EngineImpl implements Engine, InitializingBean {
 		if (v != null && (v.getType().isNone() || ballot.isVoteChangeable())) {
 			v.setType(vote);
 			dataService.save(v);
-		} else {
+		} else if (v == null) {
 			v = dataService.createVote(ballot, votingUser, vote);
+			dataService.save(v);
+		} else {
+			return;
 		}
 		final List<Vote> vs = new ArrayList<Vote>();
 		votes(ballot, new Predicate<Vote>() {
@@ -411,6 +427,13 @@ public class EngineImpl implements Engine, InitializingBean {
 		dataService.save(ballot);
 
 	}
+
+	@Override
+	public Vote myVote(User me, Ballot onBallot) {
+		return dataService.getVote(onBallot, me);
+	}
+	
+	
 
 	
 }

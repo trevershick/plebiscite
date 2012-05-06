@@ -1,2 +1,80 @@
 @CHARSET "UTF-8";
+.chit {
+	float:left;
+	border:1px solid gray;
+	width:200px;
+	height:200px;
+	padding:0;
+	margin-left:1.45em;
+	margin-bottom:5em;
+}
+
+.chit input[type="radio"] {
+	border:1px solid green;
+	margin:auto;
+	margin-top:60px;
+	display:block;
+	padding:20px;
+	border:1px solid red;
+	background-color:blue;
+	text-align:center;
+}
+
+
+		.ballot-box {
+			float:left;
+			border:1px solid gray;
+			width:200px;
+			padding:0;
+			margin:10px;
+		}
+		.ballot-box h1 {
+			font-size:12pt;
+			padding:3px;
+			margin:0;
+			text-align:center;
+			border-bottom: 1px solid gray;
+		}
+		.ballot-box a {
+			text-decoration:none;
+		}
+		.ballot-box p {
+			margin:0px;
+			padding:3px;
+			font-size:8pt;
+		}
+
+p.Yay {
+	/*background-color:#ABBF78;*/
+	background-color:green;
+	color:white;	
+}
+p.Accepted {
+	background-color:green;
+	color:white;	
+}
+
+h1 {
+	font-size:14pt;
+	font-weight:normal;
+}
+h2 {
+	font-size:12pt;
+	font-weight:normal;
+}
+p {
+	margin:0.8em 1.5em 0.3em;
+}
+#grailsLogo {
+	background-color: #abbf78;
+}
+#grailsLogo h1 {
+	padding:18px;
+	color:white;
+	font-size:18pt;
+}
+
+#grailsLogo a {
+	text-decoration:none;
+}
 

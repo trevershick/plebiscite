@@ -1,16 +1,15 @@
-<%@ page import="plebiscite.web.Ballot2" %>
 <!doctype html>
 <html>
 	<head>
 		<meta name="layout" content="main">
 		<g:set var="entityName" value="${message(code: 'ballot2.label', default: 'Ballot2')}" />
-		<title><g:message code="default.edit.label" args="[entityName]" /></title>
+		<title><g:message code="default.edit.label" args="[ballotInstance.title]" /></title>
 	</head>
 	<body>
 
 		<div id="edit-ballot" class="content scaffold-edit" role="main">
 			<g:render template="/errors"/>
-			<h1><g:message code="default.edit.label" args="[entityName]" /></h1>
+			<h1><g:message code="default.edit.label" args="[ballotInstance.title]" /></h1>
 
 
 			<g:hasErrors bean="${ballotInstance}">

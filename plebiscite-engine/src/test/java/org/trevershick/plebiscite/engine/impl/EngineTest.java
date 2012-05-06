@@ -2,12 +2,14 @@ package org.trevershick.plebiscite.engine.impl;
 
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertNotNull;
-import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.Before;
@@ -197,23 +199,23 @@ public class EngineTest extends AWSTest {
 		User u2 = engine.addUserToBallot(b, "tshick@hotmail.com", true);
 		User u3 = engine.addUserToBallot(b, "trevershick@yahoo.com", false);
 
-		final List<Ballot> bs = new ArrayList<Ballot>();
-		engine.ballotsINeedToVoteOn(u2, new Predicate<Ballot>() {
+		final Map<Ballot,Vote> bs = new HashMap<Ballot,Vote>();
+		engine.ballotsINeedToVoteOn(u2, new Predicate<Map<Ballot,Vote>>() {
 			@Override
-			public boolean apply(Ballot input) {
-				bs.add(input);
+			public boolean apply(Map<Ballot,Vote> input) {
+				bs.putAll(input);
 				return true;
 			}});
-		assertTrue(bs.contains(b));
+		assertTrue(bs.containsKey(b));
 
 		bs.clear();
-		engine.ballotsINeedToVoteOn(u3, new Predicate<Ballot>() {
+		engine.ballotsINeedToVoteOn(u3, new Predicate<Map<Ballot,Vote>>() {
 			@Override
-			public boolean apply(Ballot input) {
-				bs.add(input);
+			public boolean apply(Map<Ballot,Vote> input) {
+				bs.putAll(input);
 				return true;
 			}});
-		assertFalse(bs.contains(b));
+		assertFalse(bs.containsKey(b));
 
 	}
 
@@ -234,26 +236,26 @@ public class EngineTest extends AWSTest {
 		
 		User u2 = engine.addUserToBallot(b, "tshick@hotmail.com", true);
 
-		final List<Ballot> bs = new ArrayList<Ballot>();
-		engine.ballotsIVotedOn(u2, new Predicate<Ballot>() {
+		final Map<Ballot,Vote> bs = new HashMap<Ballot,Vote>();
+		engine.ballotsIVotedOn(u2, new Predicate<Map<Ballot,Vote>>() {
 			@Override
-			public boolean apply(Ballot input) {
-				bs.add(input);
+			public boolean apply(Map<Ballot,Vote> input) {
+				bs.putAll(input);
 				return true;
 			}});
-		assertFalse(bs.contains(b));
+		assertFalse(bs.containsKey(b));
 
 		
 		engine.vote(b, u2, VoteType.Nay);
 		
 		bs.clear();
-		engine.ballotsIVotedOn(u2, new Predicate<Ballot>() {
+		engine.ballotsIVotedOn(u2, new Predicate<Map<Ballot,Vote>>() {
 			@Override
-			public boolean apply(Ballot input) {
-				bs.add(input);
+			public boolean apply(Map<Ballot,Vote> input) {
+				bs.putAll(input);
 				return true;
 			}});
-		assertTrue(bs.contains(b));
+		assertTrue(bs.containsKey(b));
 
 	}
 

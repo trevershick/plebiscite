@@ -8,8 +8,14 @@
 		<title><g:message code="default.show.label" args="[entityName]" /></title>
 	</head>
 	<body>
+		
 		<div id="show-ballot" class="content scaffold-show" role="main">
 			<g:render template="/errors"/>
+			
+						<g:if test="${myvote }">
+				<div class="message" role="status">You voted '${myvote.type }' on this ballot on ${myvote.when }</div>
+			</g:if>
+			
 			<h1><g:message code="default.show.label" args="[entityName]" /></h1>
 			<ol class="property-list ballot">
 			
@@ -53,29 +59,39 @@
 				</li>
 				<g:if test="${ballotInstance?.expirationDate }">
 				<li class="fieldcontain">
-					<span id="state-label" class="property-label"><g:message code="ballot.expirationdate.label" default="Expiration Date" /></span>
+					<span id="expirationdate-label" class="property-label"><g:message code="ballot.expirationdate.label" default="Expiration Date" /></span>
 					<span class="property-value" aria-labelledby="expirationdate-label">
 						<g:formatDate date="${ballotInstance?.expirationDate }" />
 					</span>					
 				</li>
 				</g:if>
 				<li class="fieldcontain">
+					<span id="owner-label" class="property-label"><g:message code="ballot.owner.label" default="Owner" /></span>
+					<span class="property-value" aria-labelledby="owner-label">
+					${ballotInstance.owner }
+					</span>					
+				</li>
+				<g:if test="${showVoters }">
+				<li class="fieldcontain">
 					<h1>Voters</h1>
 					<table>
 						<thead>
-							<tr><th>User</th><th>Required</th></tr>
+							<tr><th>User</th><th>Required</th><th>Vote</th><th>When</th></tr>
 						</thead>
 						<tbody>
 							<g:each var="vote" in="${votes }">
 							<tr>
 								<td>${vote.userId }</td>
 								<td><g:formatBoolean boolean="${vote.required }" false="Nope" true="Yep" /></td>
+								<td>${vote.type }</td>
+								<td>${vote.when }</td>
 							</tr>
 							</g:each>
 						</tbody>
 					</table>
 				
 				</li>
+				</g:if>
 			</ol>
 			<g:form>
 				<fieldset class="buttons">

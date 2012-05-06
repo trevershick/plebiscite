@@ -30,6 +30,8 @@ import com.amazonaws.services.dynamodb.AmazonDynamoDB;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBHashKey;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapper;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapperConfig;
+import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapperConfig.ConsistentReads;
+import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapperConfig.SaveBehavior;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapperConfig.TableNameOverride;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBQueryExpression;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBScanExpression;
@@ -73,7 +75,7 @@ public class DynamoDbDataService implements DataService,InitializingBean {
 	
 
 	private DynamoDBMapperConfig configFor(Class<?> clazz) {
-		return new DynamoDBMapperConfig(new TableNameOverride(tableName(clazz)));
+		return new DynamoDBMapperConfig(SaveBehavior.UPDATE, ConsistentReads.CONSISTENT, new TableNameOverride(tableName(clazz)));
 	}
 	
 	private String tableName(Class<?> clazz) {
@@ -312,10 +314,6 @@ public class DynamoDbDataService implements DataService,InitializingBean {
 	public void users(Predicate<User> users) {
 		DynamoDBScanExpression scanexp = new DynamoDBScanExpression();
 		
-//		scanexp.addFilterCondition(
-//				hashKeyAttributeName(DynamoDbUser.class), 
-//				new Condition().withComparisonOperator(ComparisonOperator.NOT_NULL));
-		
 		PaginatedScanList<DynamoDbUser> list = new DynamoDBMapper(db,configFor(DynamoDbUser.class)).scan(
 				DynamoDbUser.class, scanexp);
 		applyWhileTrue(users, list);
@@ -330,11 +328,9 @@ public class DynamoDbDataService implements DataService,InitializingBean {
 
 	public void updateState(Ballot u, BallotState st) {
 		DynamoDbBallot b = (DynamoDbBallot) getBallot(u.getId());
-		BallotState previousState = b.getState();
-
 		b.setState(st);
 		save(b);
-		updateStateIndex(b, st); // TODO this is obviously not correct, it doesn't have the previous state
+		updateStateIndex(b, st);
 	}
 	
 	public void updateState(User user, UserStatus inactive) {

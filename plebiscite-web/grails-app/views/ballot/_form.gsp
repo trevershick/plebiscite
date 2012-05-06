@@ -14,7 +14,7 @@
 		<g:message code="ballot.description.label" default="Description" />
 		<span class="required-indicator">*</span>
 	</label>
-	<g:textField name="description" required="" value="${ballotInstance?.description}"/>
+	<g:textArea name="description" required="true" value="${ballotInstance?.description}"/>
 </div>
 
 <div class="fieldcontain ${hasErrors(bean: ballotInstance, field: 'openBallot', 'error')} required">
@@ -32,7 +32,12 @@
 	</label>
 	<g:checkBox name="voteChangeable" value="${ballotInstance?.voteChangeable }"/>
 </div>
-
+<div class="fieldcontain">
+	<label for="ballotExpires">
+		Ballot Expires
+	</label>
+	<g:checkBox name="ballotExpires" value="${ballotInstance?.expires() }" />
+</div>
 <div class="fieldcontain ${hasErrors(bean: ballotInstance, field: 'expirationDate', 'error')} required">
 	<label for="description">
 		<g:message code="ballot.expirationdate.label" default="Expiration Date" />
@@ -42,10 +47,6 @@
 </div>
 <g:if test="${ballotInstance?.id }">
 <div class="fieldcontain">
-	<label for="description">
-		<g:message code="ballot.voters.label" default="Voters" />
-		<span class="required-indicator">*</span>
-	</label>
 	<h2>Voters</h2>
 	<table>
 		<thead>
@@ -62,7 +63,7 @@
 			<tr>
 				<td></td>
 				<td><g:textField name="email" value=""/></td>
-				<td><g:checkBox name="emailRequired" value=""/>
+				<td><g:checkBox name="emailRequired" value="true"/>
 				<g:actionSubmit value="add" class="save" action="edit"/>
 				</td>
 			</tr>

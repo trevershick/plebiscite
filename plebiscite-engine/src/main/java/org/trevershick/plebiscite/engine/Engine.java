@@ -31,9 +31,9 @@ public interface Engine {
 
 	void ballotListForAdmin(User user, BallotCriteria criteria, Predicate<Ballot> b);
 	void ballotsIOwn(User user, Predicate<Ballot> b);
-	void ballotsIVotedOn(User user,Predicate<Ballot> b);
+	void ballotsIVotedOn(User user,Predicate<Map<Ballot,Vote>> b);
 	void ballotsThatAreOpen(Predicate<Ballot> b);
-	void ballotsINeedToVoteOn(User user, Predicate<Ballot> b);
+	public void ballotsINeedToVoteOn(User user,Predicate<Map<Ballot,Vote>> b);
 	/**
 	 * Iterate over the open ballots and find timed out ballots
 	 */
@@ -63,7 +63,13 @@ public interface Engine {
 	Ballot getBallot(String ballotId);
 	void votes(Ballot ballot, Predicate<Vote> vote);
 	void votes(User forUser, Predicate<Vote> vote);
-	
+	/**
+	 * return my vote for this ballot, or null
+	 * @param me
+	 * @param onBallot
+	 * @return
+	 */
+	Vote myVote(User me, Ballot onBallot);
 	void vote(Ballot onBallot, User votingUser, VoteType vote);
 
 }

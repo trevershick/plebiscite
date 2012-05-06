@@ -9,11 +9,6 @@
 		<title><g:message code="default.list.label" args="[entityName]" /></title>
 	</head>
 	<body>
-		<div class="nav" role="navigation">
-			<ul>
-				<li><g:link class="create" action="create"><g:message code="default.new.label" args="[entityName]" /></g:link></li>
-			</ul>
-		</div>
 	
 		<div id="list-ballot" class="content scaffold-list" role="main">
 			<g:render template="/errors"/>

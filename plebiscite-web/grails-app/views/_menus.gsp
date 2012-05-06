@@ -5,6 +5,9 @@
 				<li><g:link controller="ballot" class="list" action="list">Ballots</g:link></li>
 				</g:if>
 				<li><g:link controller="ballot" class="list" action="openballots">Open Ballots</g:link></li>
+				<g:if test="${ session.user?.canCreateBallot() }">
+				<li><g:link class="create" controller="Ballot" action="create">New Ballot</g:link></li>
+				</g:if>
 				
 				<g:if test="${ session.user }">
 				<li><g:link controller="ballot" class="list" action="my">My Ballots</g:link></li>
