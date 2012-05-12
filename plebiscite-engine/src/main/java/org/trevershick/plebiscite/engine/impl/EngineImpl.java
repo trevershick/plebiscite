@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentMap;
 
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.util.Assert;
@@ -27,7 +26,6 @@ import org.trevershick.plebiscite.model.VoteType;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.MapMaker;
@@ -59,22 +57,21 @@ public class EngineImpl implements Engine, InitializingBean {
 				+ getClass().getSimpleName());
 	}
 
-	public User authenticate(String userId, String credentials) {
-		User user = this.dataService.getUser(userId);
-		return this.dataService.credentialsMatch(user, credentials) ? user : null;
+	public User authenticate(String email, String credentials) {
+		return this.dataService.credentialsMatch(email, credentials) ? this.dataService
+				.getUser(email) : null;
 	}
 
 	public Ballot createBallot(User owner, String title)
 			throws InvalidDataException {
-		User user = dataService.getUser(owner.getEmailAddress());
-		
+		// User user = dataService.getUser(owner.getEmailAddress());
+
 		Ballot b = dataService.createBallot();
-		b.setOwner(user.getEmailAddress());
+		b.setOwner(owner.getEmailAddress());
 		b.setTitle(title);
 		this.dataService.save(b);
 		return b;
 	}
-
 
 	public void deleteBallot(User who, Ballot b) {
 		throw new RuntimeException("Not Implemented");
@@ -99,68 +96,72 @@ public class EngineImpl implements Engine, InitializingBean {
 		return this.dataService.save(u);
 	}
 
-	public void cancel(Ballot b) {
-		Ballot u = this.dataService.getBallot(b.getId());
+	public void cancel(Ballot u) {
+		BallotState oldState = u.getState();
+		// Ballot u = this.dataService.getBallot(b.getId());
 		if (u.getState().isCancellable()) {
 			this.dataService.updateState(u, BallotState.Cancelled);
+			sendBallotStateChangeNotificationEmail(u, BallotState.Open, oldState, new HashMap<String,Object>());
 		}
-		// TODO send notification
 	}
 
 	public void deactivate(User user) {
 		this.dataService.updateState(user, UserStatus.Inactive);
 	}
 
-	public User addUserToBallot(Ballot b,String emailAddress, boolean required)
-			throws AlreadyExistsException, BallotCompletedException {
-		Ballot ballot = getBallot(b.getId());
-		if (ballot.getState() != BallotState.Open && ballot.getState() != BallotState.Closed) {
+	public User addUserToBallot(Ballot ballot, String emailAddress,
+			boolean required) throws AlreadyExistsException,
+			BallotCompletedException {
+		// Ballot ballot = getBallot(b.getId());
+		if (ballot.getState() != BallotState.Open
+				&& ballot.getState() != BallotState.Closed) {
 			throw new BallotCompletedException();
 		}
-		
-		
+
 		User userToAdd = this.dataService.createUser(emailAddress);
 		this.dataService.save(userToAdd);
-		
-		Vote v = dataService.createVote(ballot, userToAdd,VoteType.None);
+
+		Vote v = dataService.createVote(ballot, userToAdd, VoteType.None);
 		if (v != null) {
 			v.setRequired(required);
 			this.dataService.save(v);
 		}
 		return userToAdd;
-		
-		// TODO - need to send email to the voter. t he email  needs to be different if someone is
+
+		// TODO - need to send email to the voter. t he email needs to be
+		// different if someone is
 		// registered vs not registered
 	}
 
 	// TODO - add security, only admin or the ballot owner can do this
-	public void removeUserFromBallot(Ballot b, String emailAddress)
+	public void removeUserFromBallot(Ballot ballot, String emailAddress)
 			throws BallotCompletedException {
-		Ballot ballot = dataService.getBallot(b.getId());
+		// Ballot ballot = dataService.getBallot(b.getId());
 		if (ballot.getState().isComplete()) {
 			throw new BallotCompletedException();
 		}
-		
+
 		User u = dataService.getUser(emailAddress);
 		if (u == null) {
 			return;
 		}
 		Vote vote = dataService.getVote(ballot, u);
-		if (vote != null) { 
+		if (vote != null) {
 			dataService.delete(vote);
 		}
 	}
 
 	public void processVote(Ballot ballot, String emailAddress, VoteType vote) {
-		
+
 		throw new RuntimeException("processVote not implemented");
 	}
 
-	public void open(Ballot ballot) {
-		Ballot b = getBallot(ballot.getId());
+	public void open(Ballot b, Map<String, Object> emailParams) {
+		BallotState oldState = b.getState();
 		if (b.getState().equals(BallotState.Closed)) {
 			this.dataService.updateState(b, BallotState.Open);
-			// TODO - notify the user of the state change
+			sendBallotOpenNotificationEmail(b, emailParams);
+			sendBallotStateChangeNotificationEmail(b, BallotState.Open, oldState, emailParams);
 		}
 	}
 
@@ -170,7 +171,8 @@ public class EngineImpl implements Engine, InitializingBean {
 		}
 		User u = getUser(emailAddress);
 		if (u == null) {
-			// if the user isn't in the system then he/she wasn't added to a ballot
+			// if the user isn't in the system then he/she wasn't added to a
+			// ballot
 			return false;
 		}
 		return this.dataService.getVote(ballot, u) != null;
@@ -183,60 +185,70 @@ public class EngineImpl implements Engine, InitializingBean {
 	}
 
 	@Override
-	public void ballotsINeedToVoteOn(User user,Predicate<Map<Ballot,Vote>> b) {
+	public void ballotsINeedToVoteOn(User user, Predicate<Map<Ballot, Vote>> b) {
 		final List<Vote> votes = new ArrayList<Vote>();
 		this.dataService.votes(user, new Predicate<Vote>() {
 			@Override
 			public boolean apply(Vote input) {
 				votes.add(input);
 				return true;
-			}});
-		Iterable<Vote> nonvotes = Iterables.filter(votes, new Predicate<Vote>() {
-			@Override
-			public boolean apply(Vote input) {
-				return input.getType().isNone() && input.isRequired();
 			}
 		});
-		Iterable<Map<Ballot,Vote>> ballots = Iterables.transform(nonvotes, new Function<Vote,Map<Ballot,Vote>>(){
-			@Override
-			public Map<Ballot,Vote> apply(Vote input) {
-				Map<Ballot, Vote> m = new MapMaker().initialCapacity(1).makeMap();
-				Ballot b = dataService.getBallot(input.getBallotId());
-				if (b != null) {
-					m.put(b, input);
-				}
-				return m;
-				} });
-		for (Map<Ballot,Vote> bal : ballots) {
+		Iterable<Vote> nonvotes = Iterables.filter(votes,
+				new Predicate<Vote>() {
+					@Override
+					public boolean apply(Vote input) {
+						return input.getType().isNone() && input.isRequired();
+					}
+				});
+		Iterable<Map<Ballot, Vote>> ballots = Iterables.transform(nonvotes,
+				new Function<Vote, Map<Ballot, Vote>>() {
+					@Override
+					public Map<Ballot, Vote> apply(Vote input) {
+						Map<Ballot, Vote> m = new MapMaker().initialCapacity(1)
+								.makeMap();
+						Ballot b = dataService.getBallot(input.getBallotId());
+						if (b != null) {
+							m.put(b, input);
+						}
+						return m;
+					}
+				});
+		for (Map<Ballot, Vote> bal : ballots) {
 			b.apply(bal);
 		}
 	}
-	
-	public void ballotsIVotedOn(User user,Predicate<Map<Ballot,Vote>> b) {
+
+	public void ballotsIVotedOn(User user, Predicate<Map<Ballot, Vote>> b) {
 		final List<Vote> votes = new ArrayList<Vote>();
 		this.dataService.votes(user, new Predicate<Vote>() {
 			@Override
 			public boolean apply(Vote input) {
 				votes.add(input);
 				return true;
-			}});
-		Iterable<Vote> votesonly = Iterables.filter(votes, new Predicate<Vote>() {
-			@Override
-			public boolean apply(Vote input) {
-				return input.getType().isAVote() ;
 			}
 		});
-		Iterable<Map<Ballot,Vote>> ballots = Iterables.transform(votesonly, new Function<Vote,Map<Ballot,Vote>>(){
-			@Override
-			public Map<Ballot,Vote> apply(Vote input) {
-				Map<Ballot, Vote> m = new MapMaker().initialCapacity(1).makeMap();
-				Ballot b = dataService.getBallot(input.getBallotId());
-				if (b != null) {
-					m.put(b, input);
-				}
-				return m;
-				} });
-		for (Map<Ballot,Vote> bal : ballots) {
+		Iterable<Vote> votesonly = Iterables.filter(votes,
+				new Predicate<Vote>() {
+					@Override
+					public boolean apply(Vote input) {
+						return input.getType().isAVote();
+					}
+				});
+		Iterable<Map<Ballot, Vote>> ballots = Iterables.transform(votesonly,
+				new Function<Vote, Map<Ballot, Vote>>() {
+					@Override
+					public Map<Ballot, Vote> apply(Vote input) {
+						Map<Ballot, Vote> m = new MapMaker().initialCapacity(1)
+								.makeMap();
+						Ballot b = dataService.getBallot(input.getBallotId());
+						if (b != null) {
+							m.put(b, input);
+						}
+						return m;
+					}
+				});
+		for (Map<Ballot, Vote> bal : ballots) {
 			b.apply(bal);
 		}
 	}
@@ -246,7 +258,7 @@ public class EngineImpl implements Engine, InitializingBean {
 		bc.addState(BallotState.Open);
 		bc.setOpenBallots(true);
 		this.dataService.ballots(bc, b);
-		
+
 	}
 
 	public void processTimedOutBallots() {
@@ -258,18 +270,19 @@ public class EngineImpl implements Engine, InitializingBean {
 	}
 
 	public void ban(User user) {
-		Preconditions.checkArgument(user != null && user.getEmailAddress() != null);
+		Preconditions.checkArgument(user != null
+				&& user.getEmailAddress() != null);
 		this.dataService.updateState(user, UserStatus.Banned);
 	}
 
-	
 	/**
 	 * doesn't mark the user as registered. just creates a user
 	 */
-	public void registerUser(String emailAddress, Map<String,Object> emailParams)
-			throws AlreadyExistsException, InvalidDataException {
+	public void registerUser(String emailAddress,
+			Map<String, Object> emailParams) throws AlreadyExistsException,
+			InvalidDataException {
 		User user = this.dataService.getUser(emailAddress);
-		
+
 		if (user != null) {
 			throw new AlreadyExistsException();
 		}
@@ -278,26 +291,73 @@ public class EngineImpl implements Engine, InitializingBean {
 		this.dataService.save(user);
 	}
 
-	private void sendEmailVerificationEmail(User user, Map<String,Object> emailParams) {
+	private void sendEmailVerificationEmail(User user,
+			Map<String, Object> emailParams) {
 		// construct a token
 		String token = user.generateVerificationToken();
 		// send an email
 		String to = user.getEmailAddress();
-		
+
 		try {
 			HashMap<String, Object> p = Maps.newHashMap(emailParams);
 			p.put("email", to);
 			p.put("token", token);
-			Map<String, String> m = new EmailProducer().buildMailMessage("emailverification", p);
+			Map<String, String> m = new EmailProducer().buildMailMessage(
+					"emailverification", p);
 			this.dataService.save(user);
 			if (emailService != null) {
-				emailService.sendEmail(to,m.get(EmailProducer.SUBJECT),m.get(EmailProducer.BODY));
+				emailService.sendEmail(to, m.get(EmailProducer.SUBJECT),
+						m.get(EmailProducer.BODY));
 			}
 		} catch (Exception e) {
 			throw Throwables.propagate(e);
 		}
 
-		
+	}
+
+	private void sendBallotOpenNotificationEmail(final Ballot ballot,
+			final Map<String, Object> emailParams) {
+
+		this.votes(ballot, new Predicate<Vote>() {
+			@Override
+			public boolean apply(Vote input) {
+				HashMap<String, Object> p = Maps.newHashMap(emailParams);
+				p.put("ballot", ballot);
+				p.put("voter", input);
+				Map<String, String> m = new EmailProducer().buildMailMessage(
+						"ballotopennotification", p);
+				if (emailService != null) {
+					emailService.sendEmail(input.getUserId(),
+							m.get(EmailProducer.SUBJECT),
+							m.get(EmailProducer.BODY));
+				}
+				return true;
+			}
+		});
+
+		try {
+		} catch (Exception e) {
+			throw Throwables.propagate(e);
+		}
+
+	}
+
+	private void sendBallotStateChangeNotificationEmail(final Ballot ballot,
+			BallotState newState, BallotState oldState,
+			final Map<String, Object> emailParams) {
+
+		HashMap<String, Object> p = Maps.newHashMap(emailParams);
+		p.put("ballot", ballot);
+		p.put("old", oldState);
+		p.put("new", newState);
+
+		Map<String, String> m = new EmailProducer().buildMailMessage(
+				"ballotstatechangednotification", p);
+		if (emailService != null) {
+			emailService.sendEmail(ballot.getOwner(),
+					m.get(EmailProducer.SUBJECT), m.get(EmailProducer.BODY));
+		}
+
 	}
 
 	public boolean verifyEmail(String emailAddress, String verificationToken) {
@@ -305,7 +365,7 @@ public class EngineImpl implements Engine, InitializingBean {
 		if (user == null) {
 			return false;
 		}
-		
+
 		// see if the token matches teh stored token
 		// if it does mark him registered
 		// remove the stored token
@@ -314,29 +374,33 @@ public class EngineImpl implements Engine, InitializingBean {
 			return true;
 		}
 		return false;
-		
+
 	}
 
 	@Override
-	public void sendEmailVerificationEmail(String emailAddress, Map<String,Object> emailParams) {
-		Preconditions.checkArgument(emailAddress != null,"emailAddress cannot be null");
+	public void sendEmailVerificationEmail(String emailAddress,
+			Map<String, Object> emailParams) {
+		Preconditions.checkArgument(emailAddress != null,
+				"emailAddress cannot be null");
 		User u = getUser(emailAddress);
 		this.sendEmailVerificationEmail(u, emailParams);
 	}
 
 	public void updateUser(User user) {
-		Preconditions.checkArgument(user != null && user.getEmailAddress() != null);
-		User u = this.dataService.getUser(user.getEmailAddress());
-		u.setAdmin(user.isAdmin());
-		u.setServicesEnabled(user.isServicesEnabled());
-		u.setSlug(user.getSlug());
+		Preconditions.checkArgument(user != null
+				&& user.getEmailAddress() != null);
+		// User u = this.dataService.getUser(user.getEmailAddress());
+		// u.setAdmin(user.isAdmin());
+		// u.setServicesEnabled(user.isServicesEnabled());
+		// u.setSlug(user.getSlug());
 		this.dataService.save(user);
 	}
 
 	public void changePassword(User user, String password) {
-		Preconditions.checkArgument(user != null && user.getEmailAddress() != null && password != null);
+		Preconditions.checkArgument(user != null
+				&& user.getEmailAddress() != null && password != null);
 		this.dataService.updatePassword(user, password);
-		
+
 	}
 
 	public void ballotListForAdmin(User user, BallotCriteria criteria,
@@ -350,7 +414,7 @@ public class EngineImpl implements Engine, InitializingBean {
 			Predicate<User> b) {
 		// TODO @aop this
 		ensureIsAdmin(user);
-		this.dataService.users(criteria,b);
+		this.dataService.users(criteria, b);
 	}
 
 	private void ensureIsAdmin(User user) {
@@ -369,29 +433,32 @@ public class EngineImpl implements Engine, InitializingBean {
 	}
 
 	@Override
-	public void sendTemporaryPassword(String emailAddress, Map<String,Object> emailParams) {
-		Preconditions.checkArgument(emailAddress != null,"emailAddress is required");
+	public void sendTemporaryPassword(String emailAddress,
+			Map<String, Object> emailParams) {
+		Preconditions.checkArgument(emailAddress != null,
+				"emailAddress is required");
 		User user = this.dataService.getUser(emailAddress);
-		Preconditions.checkNotNull(user,"user not found");
+		Preconditions.checkNotNull(user, "user not found");
 		String pwd = user.generateTemporaryPassword();
 		this.dataService.updatePassword(user, pwd);
-		
-		
+
 		try {
 			HashMap<String, Object> p = Maps.newHashMap(emailParams);
 			p.put("user", user);
 			p.put("password", pwd);
-			
-			Map<String, String> m = new EmailProducer().buildMailMessage("temporarypassword", p);
+
+			Map<String, String> m = new EmailProducer().buildMailMessage(
+					"temporarypassword", p);
 			if (emailService != null) {
-				emailService.sendEmail(user.getEmailAddress(),
-						m.get(EmailProducer.SUBJECT),
-						m.get(EmailProducer.BODY));
+				emailService
+						.sendEmail(user.getEmailAddress(),
+								m.get(EmailProducer.SUBJECT),
+								m.get(EmailProducer.BODY));
 			}
 		} catch (Exception e) {
 			throw Throwables.propagate(e);
 		}
-		
+
 	}
 
 	@Override
@@ -423,7 +490,7 @@ public class EngineImpl implements Engine, InitializingBean {
 		if (newState.equals(currentState)) {
 			return;
 		}
-		// TODO - notify of state change for the ballot
+		sendBallotStateChangeNotificationEmail(ballot, newState, currentState, new HashMap<String, Object>());
 		dataService.save(ballot);
 
 	}
@@ -432,8 +499,5 @@ public class EngineImpl implements Engine, InitializingBean {
 	public Vote myVote(User me, Ballot onBallot) {
 		return dataService.getVote(onBallot, me);
 	}
-	
-	
 
-	
 }

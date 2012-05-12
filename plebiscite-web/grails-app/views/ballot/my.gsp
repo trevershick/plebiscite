@@ -27,7 +27,7 @@
 					<tr class="${(i % 2) == 0 ? 'even' : 'odd'}">
 						<td><g:link action="show" id="${ballotInstance.id}">${fieldValue(bean: ballotInstance, field: "title")}</g:link></td>
 					
-						<td>${fieldValue(bean: ballotInstance, field: "description")}</td>
+						<td><g:link action="show" id="${ballotInstance.id}">${fieldValue(bean: ballotInstance, field: "description")}</g:link></td>
 					
 						<td>${fieldValue(bean: ballotInstance, field: "state")}</td>
 					

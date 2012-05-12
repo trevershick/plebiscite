@@ -21,6 +21,20 @@ public class SuperUserClosePolicy extends BallotClosePolicy {
 	public SuperUserClosePolicy() {
 		super(PRIORITY_NORMAL);
 	}
+	
+
+	@Override
+	public String getDescription() {
+		StringBuilder sb = new StringBuilder("Super user is ").append(user);
+		if (this.getAcceptOnYes()) {
+			sb.append(", will accept the ballot when super user accepts it");
+		}
+		if (this.getRejectOnNo()) {
+			sb.append(", will reject the ballot when super user rejects it");
+		}
+		return sb.toString();
+	}
+
 
 	@Override
 	public BallotState shouldClose(Ballot ballot, Collection<Vote> votes) {

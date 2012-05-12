@@ -1,5 +1,9 @@
 <%@ page import="org.trevershick.plebiscite.model.Ballot" %>
-
+<style>
+textarea {
+	width:400px;
+	height:2em;
+}</style>
 <g:hiddenField name="id" value="${ballotInstance?.id }"/>
 <div class="fieldcontain ${hasErrors(bean: ballotInstance, field: 'title', 'error')} required">
 	<label for="title">
@@ -14,7 +18,7 @@
 		<g:message code="ballot.description.label" default="Description" />
 		<span class="required-indicator">*</span>
 	</label>
-	<g:textArea name="description" required="true" value="${ballotInstance?.description}"/>
+	<g:textArea name="description" required="true" value="${ballotInstance?.description}" />
 </div>
 
 <div class="fieldcontain ${hasErrors(bean: ballotInstance, field: 'openBallot', 'error')} required">
@@ -46,6 +50,27 @@
 	<g:datePicker name="expirationDate" value="${ballotInstance?.expirationDate }"/>
 </div>
 <g:if test="${ballotInstance?.id }">
+<div>
+	<h2>Policies</h2>
+	<table>
+		<thead>
+			<tr><th>Policy Type</th><th>Description</th><th></th></tr>
+		</thead>
+		<tbody>
+			<g:each var="policy" in="${ballotInstance?.policies }">
+			<tr>
+				<td>${policy.class.simpleName}</td>
+				<td>${policy.description}</td>
+				<td><g:link controller="ballot" action="policy" params="[policyId: policy.id, ballotId: ballotInstance.id, policyType:policy.class.simpleName.toLowerCase() ]">Edit</g:link></td>
+			</tr>
+			</g:each>
+		</tbody>
+	</table>
+	<g:link controller="ballot" action="policy" params="[ballotId: ballotInstance.id, policyType:'quorumclosepolicy' ]">Add Quorum</g:link>
+	<g:link controller="ballot" action="policy" params="[ballotId: ballotInstance.id, policyType:'timeoutpolicy' ]">Add Timeout</g:link>
+	<g:link controller="ballot" action="policy" params="[ballotId: ballotInstance.id, policyType:'superuserclosepolicy' ]">Add Super User</g:link>
+</div>
+
 <div class="fieldcontain">
 	<h2>Voters</h2>
 	<table>

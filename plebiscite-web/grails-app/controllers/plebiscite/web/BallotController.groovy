@@ -226,13 +226,83 @@ class BallotController {
 		
 	}
 	
+	def cancelPolicy() {
+		redirect(action:"edit", id:params.ballotId )
+	}
+	
+	def policy() {
+		def ballotInstance = engine.getBallot(params.ballotId);
+
+				
+		def policy = params.policyId == null ? null : ballotInstance.policies.find { 
+			it.id == (params.policyId as long) 
+		} 
+		
+		// for post, update the policy from the params.
+		if (request.method == "POST") {
+			switch (params.policyType) {
+				case "quorumclosepolicy":
+					if (policy == null) {
+						policy = new QuorumClosePolicy(params.numberRequired as int, params.requiredVotersOnly as boolean);
+						ballotInstance.addPolicy(policy);
+					} else {
+						policy.numberRequired = params.numberRequired as int;
+						policy.requiredVotersOnly = params.requiredVotersOnly as boolean;
+					}
+					break;
+				case "superuserclosepolicy":
+					if (policy == null) {
+						policy = new SuperUserClosePolicy()
+							.withUser(params.user)
+							.withAcceptOnYes(params.acceptOnYes as boolean)
+							.withRejectOnNo(params.rejectOnNo as boolean);
+						ballotInstance.addPolicy(policy);
+					} else {
+						policy.user = params.user;
+						policy.acceptOnYes = params.acceptOnYes;
+						policy.rejectOnNo = params.rejectOnNo;
+					}
+					break;
+				case "timeoutpolicy":
+					if (policy == null) {
+						policy = new TimeoutPolicy().withStateOnTimeout(BallotState.valueOf(params.stateOnTimeout));
+						ballotInstance.addPolicy(policy);
+					} else {
+						policy.stateOnTimeout = BallotState.valueOf(params.stateOnTimeout);
+					}
+					break;
+			}
+			engine.updateBallot(session.user, ballotInstance);
+			redirect(action:"edit", id:params.ballotId )
+			return;
+		}
+		
+		if (policy == null) {
+			switch (params.policyType) {
+				case "quorumclosepolicy":
+					policy = new QuorumClosePolicy();
+					break;
+				case "superuserclosepolicy":
+					policy = new SuperUserClosePolicy();
+					break;
+				case "timeoutpolicy":
+					policy = new TimeoutPolicy();
+					policy.stateOnTimeout = BallotState.Accepted;
+					break;
+			}
+		}
+		
+		render(view: "edit_${params.policyType}", model: [policy:policy, ballotInstance: ballotInstance]);
+		
+	}
+	
     def edit() {
         def ballotInstance = engine.getBallot(params.id);
 
         if (ballotInstance == null) {
             flash.message = message(code: 'default.not.found.message', args: [message(code: 'ballot.label', default: 'Ballot'), params.id]);
             redirect(action: "list");
-            return;
+			return;
         }
 		if (request.method == "POST") {
 			apply(ballotInstance)

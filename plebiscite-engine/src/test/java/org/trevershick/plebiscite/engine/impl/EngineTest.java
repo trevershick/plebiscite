@@ -42,6 +42,11 @@ public class EngineTest extends AWSTest {
 		svc.setDb(client);
 		svc.setEnv(env);
 		
+		SESEmailService mailservice = new SESEmailService();
+		mailservice.setClient(ses);
+		e.setEmailService(mailservice);
+		
+		
 		e.setDataService(svc);
 		this.engine = e;
 		this.adminUser = svc.createUser("trevershick@yahoo.com");
@@ -50,7 +55,7 @@ public class EngineTest extends AWSTest {
 	
 	@Test(expected=BallotCompletedException.class)
 	public void add_user_to_closed_ballot() throws InvalidDataException, AlreadyExistsException, BallotCompletedException {
-		DynamoDbUser u = svc.getUser("tshick@hotmail.com");
+		DynamoDbUser u = svc.getUser("trevershick@gmail.com");
 		if (u != null) {
 			this.svc.delete(u);	
 		}
@@ -58,18 +63,18 @@ public class EngineTest extends AWSTest {
 		
 		Ballot b = engine.createBallot(adminUser, "Test Ballot 1");
 		engine.cancel(b);
-		engine.addUserToBallot(b, "tshick@hotmail.com", true);
+		engine.addUserToBallot(b, "trevershick@gmail.com", true);
 	}
 	
 	@Test
 	public void create_user_ballot_with_vote() throws Exception {
-		DynamoDbUser u = svc.getUser("tshick@hotmail.com");
+		DynamoDbUser u = svc.getUser("trevershick@gmail.com");
 		if (u != null) {
 			this.svc.delete(u);	
 		}
 		
 		Ballot b = engine.createBallot(adminUser, "Test Ballot 1");
-		User u2 = engine.addUserToBallot(b, "tshick@hotmail.com", true);
+		User u2 = engine.addUserToBallot(b, "trevershick@gmail.com", true);
 		assertNotNull(u2);
 		assertFalse(u2.isRegistered());
 		
@@ -86,9 +91,9 @@ public class EngineTest extends AWSTest {
 	
 	@Test
 	public void test_my_ballots() throws Exception {
-		DynamoDbUser owner = svc.save(svc.createUser(System.currentTimeMillis() + "@plebiscite.com"));
-		DynamoDbUser other = svc.save(svc.createUser((System.currentTimeMillis() + 1) + "@plebiscite.com"));
-		DynamoDbUser admin = svc.save(svc.createUser((System.currentTimeMillis() + 2) + "@plebiscite.com"));
+		DynamoDbUser owner = svc.save(svc.createUser("trevershick@yahoo.com"));
+		DynamoDbUser other = svc.save(svc.createUser("trevershick@gmail.com"));
+		DynamoDbUser admin = svc.save(svc.createUser("tshick@hotmail.com"));
 		admin.setAdmin(true);
 		svc.save(admin);
 		
@@ -124,9 +129,9 @@ public class EngineTest extends AWSTest {
 
 	@Test
 	public void test_open_ballots() throws Exception {
-		DynamoDbUser owner = svc.save(svc.createUser(System.currentTimeMillis() + "@plebiscite.com"));
-		DynamoDbUser other = svc.save(svc.createUser((System.currentTimeMillis() + 1) + "@plebiscite.com"));
-		DynamoDbUser admin = svc.save(svc.createUser((System.currentTimeMillis() + 2) + "@plebiscite.com"));
+		DynamoDbUser owner = svc.save(svc.createUser("trevershick@yahoo.com"));
+		DynamoDbUser other = svc.save(svc.createUser("trevershick@gmail.com"));
+		DynamoDbUser admin = svc.save(svc.createUser("tshick@hotmail.com"));
 		admin.setAdmin(true);
 		svc.save(admin);
 		
@@ -138,8 +143,8 @@ public class EngineTest extends AWSTest {
 		ballot1.setOpenBallot(true);
 		engine.updateBallot(admin, ballot1);
 		
-		engine.open(ballot2);
-		engine.open(ballot1);
+		engine.open(ballot2, new HashMap<String, Object>());
+		engine.open(ballot1, new HashMap<String, Object>());
 		
 		
 		final AtomicReference<Ballot> ballot1Ref = new AtomicReference<Ballot>();
@@ -160,7 +165,7 @@ public class EngineTest extends AWSTest {
 	
 	@Test
 	public void test_the_vote() throws InvalidDataException, AlreadyExistsException, BallotCompletedException {
-		DynamoDbUser u = svc.getUser("tshick@hotmail.com");
+		DynamoDbUser u = svc.getUser("trevershick@gmail.com");
 		if (u != null) {
 			this.svc.delete(u);	
 		}
@@ -169,9 +174,9 @@ public class EngineTest extends AWSTest {
 		b.addPolicy(new QuorumClosePolicy().withNumberRequired(1).withRequiredVotersOnly(true));
 		engine.updateBallot(adminUser, b);
 		
-		User u2 = engine.addUserToBallot(b, "tshick@hotmail.com", true);
+		User u2 = engine.addUserToBallot(b, "trevershick@gmail.com", true);
 		User u3 = engine.addUserToBallot(b, "trevershick@yahoo.com", false);
-		engine.open(b);
+		engine.open(b, new HashMap<String, Object>());
 		assertEquals(BallotState.Open, engine.getBallot(b.getId()).getState());
 		
 		engine.vote(b, u3, VoteType.Yay);
@@ -187,7 +192,7 @@ public class EngineTest extends AWSTest {
 
 	@Test
 	public void test_votes_i_need_to_vote_on() throws InvalidDataException, AlreadyExistsException, BallotCompletedException {
-		DynamoDbUser u = svc.getUser("tshick@hotmail.com");
+		DynamoDbUser u = svc.getUser("trevershick@gmail.com");
 		if (u != null) {
 			this.svc.delete(u);	
 		}
@@ -196,8 +201,8 @@ public class EngineTest extends AWSTest {
 		b.addPolicy(new QuorumClosePolicy().withNumberRequired(1).withRequiredVotersOnly(true));
 		engine.updateBallot(adminUser, b);
 		
-		User u2 = engine.addUserToBallot(b, "tshick@hotmail.com", true);
-		User u3 = engine.addUserToBallot(b, "trevershick@yahoo.com", false);
+		User u2 = engine.addUserToBallot(b, "trevershick@gmail.com", true);
+		User u3 = engine.addUserToBallot(b, "trevershick@yahooo.com", false);
 
 		final Map<Ballot,Vote> bs = new HashMap<Ballot,Vote>();
 		engine.ballotsINeedToVoteOn(u2, new Predicate<Map<Ballot,Vote>>() {
@@ -225,7 +230,7 @@ public class EngineTest extends AWSTest {
 	
 	@Test
 	public void test_ballots_i_voted_on() throws InvalidDataException, AlreadyExistsException, BallotCompletedException {
-		DynamoDbUser u = svc.getUser("tshick@hotmail.com");
+		DynamoDbUser u = svc.getUser("trevershick@gmail.com");
 		if (u != null) {
 			this.svc.delete(u);	
 		}
@@ -234,7 +239,7 @@ public class EngineTest extends AWSTest {
 		b.addPolicy(new QuorumClosePolicy().withNumberRequired(1).withRequiredVotersOnly(true));
 		engine.updateBallot(adminUser, b);
 		
-		User u2 = engine.addUserToBallot(b, "tshick@hotmail.com", true);
+		User u2 = engine.addUserToBallot(b, "trevershick@yahoo.com", true);
 
 		final Map<Ballot,Vote> bs = new HashMap<Ballot,Vote>();
 		engine.ballotsIVotedOn(u2, new Predicate<Map<Ballot,Vote>>() {

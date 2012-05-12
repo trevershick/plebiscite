@@ -26,7 +26,7 @@ public interface Engine {
 	
 	// extended ballot operations
 	void cancel(Ballot ballot) throws BallotCompletedException;
-	void open(Ballot ballot);
+	void open(Ballot ballot, Map<String,Object> emailparams);
 	boolean userCanVoteOn(Ballot ballot, String emailAddress);
 
 	void ballotListForAdmin(User user, BallotCriteria criteria, Predicate<Ballot> b);

@@ -17,7 +17,7 @@
 			</g:if>
 			
 			<h1><g:message code="default.show.label" args="[entityName]" /></h1>
-			<ol class="property-list ballot">
+			<ul class="property-list ballot">
 			
 				<g:if test="${ballotInstance?.title}">
 				<li class="fieldcontain">
@@ -71,7 +71,25 @@
 					${ballotInstance.owner }
 					</span>					
 				</li>
-				<g:if test="${showVoters }">
+				<g:if test="${ballotInstance?.policies }">
+				<li>
+					<h1>Policies</h1>
+					<table>
+						<thead>
+							<tr><th>Policy Type</th><th>Description</th></tr>
+						</thead>
+						<tbody>
+							<g:each var="policy" in="${policies? }">
+							<tr>
+								<td>${policy.class.simpleName}</td>
+								<td>${policy.description}</td>
+							</tr>
+							</g:each>
+						</tbody>
+					</table>
+				</li>
+				</g:if>
+				<g:if test="${showVoters && votes}">
 				<li class="fieldcontain">
 					<h1>Voters</h1>
 					<table>
@@ -92,7 +110,7 @@
 				
 				</li>
 				</g:if>
-			</ol>
+			</ul>
 			<g:form>
 				<fieldset class="buttons">
 					<g:hiddenField name="id" value="${ballotInstance?.id}" />

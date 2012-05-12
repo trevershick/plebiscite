@@ -326,10 +326,11 @@ public class DynamoDbDataService implements DataService,InitializingBean {
 		applyWhileTrue(vote, query);
 	}
 
-	public void updateState(Ballot u, BallotState st) {
-		DynamoDbBallot b = (DynamoDbBallot) getBallot(u.getId());
-		b.setState(st);
-		save(b);
+	public void updateState(Ballot b, BallotState st) {
+		DynamoDbBallot ballot = (DynamoDbBallot) getBallot(b.getId());
+		ballot.setState(st);
+		save(ballot);
+		((DynamoDbBallot)b).setState(st);
 		updateStateIndex(b, st);
 	}
 	
@@ -353,8 +354,8 @@ public class DynamoDbDataService implements DataService,InitializingBean {
 	
 	
 
-	public boolean credentialsMatch(User user, String credentials) {
-		DynamoDbUser u = getUser(user.getEmailAddress());
+	public boolean credentialsMatch(String emailAddress, String credentials) {
+		DynamoDbUser u = getUser(emailAddress);
 		try {
 			return hash(credentials).equals(u.getCredentials());
 		} catch (Exception e) { 

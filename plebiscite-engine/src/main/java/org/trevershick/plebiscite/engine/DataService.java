@@ -51,5 +51,5 @@ public interface DataService {
 	void markEmailVerified(User user);
 	void updateState(User user, UserStatus inactive);
 	void updatePassword(User user, String password);
-	boolean credentialsMatch(User user, String credentials);
+	boolean credentialsMatch(String userEmailAddress, String credentials);
 }

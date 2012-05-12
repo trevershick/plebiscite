@@ -1,0 +1,1 @@
+Your ballot ${ballot.title} has changed from ${old} to ${new}.

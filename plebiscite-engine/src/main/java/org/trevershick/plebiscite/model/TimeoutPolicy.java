@@ -9,6 +9,10 @@ import com.amazonaws.util.json.JSONObject;
 public class TimeoutPolicy extends BallotClosePolicy {
 
 	
+	@Override
+	public String getDescription() {
+		return "Will set the ballot to " + stateOnTimeout.name() + " when the ballot expires";
+	}
 	private BallotState stateOnTimeout;
 	public TimeoutPolicy() {
 		super(PRIORITY_LOWEST);

@@ -1,0 +1,1 @@
+A new ballot has opened on ${site!"Plebiscite"}

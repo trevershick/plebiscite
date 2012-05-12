@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.trevershick.plebiscite</groupId>
 	<artifactId>plebiscite-engine</artifactId>
-	<version>0.0.2.23-SNAPSHOT</version>
+	<version>0.0.2.24-SNAPSHOT</version>
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework</groupId>
