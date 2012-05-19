@@ -193,12 +193,29 @@ public class DynamoDbDataService implements DataService,InitializingBean {
 	
 	public void delete(Ballot b) {
 		Preconditions.checkArgument(b != null, "ballot cannot be null");
-		new DynamoDBMapper(db).delete(b,configFor(DynamoDbBallot.class));
+		DynamoDbUser u = getUser(b.getOwner());
+		u.removeBallotsIOwn(Lists.newArrayList(b.getId()));
+		save(u);
+		mapper(DynamoDbBallot.class).delete(b);
 	}
 
 	public void delete(User user) {
 		Preconditions.checkArgument(user != null, "user cannot be null");
-		new DynamoDBMapper(db).delete(user,configFor(DynamoDbUser.class));
+		DynamoDbUser u = getUser(user.getEmailAddress());
+		if (u == null) {
+			return;
+		}
+		if (u.getBallotsIOwn() != null) {
+			for (String b : u.getBallotsIOwn()) {
+				Ballot ballot = getBallot(b);
+				if (ballot != null) {
+					delete(ballot);
+				}
+			}
+			u = getUser(user.getEmailAddress());
+		}
+		
+		mapper(DynamoDbUser.class).delete(u);
 	}
 
 
@@ -254,7 +271,12 @@ public class DynamoDbDataService implements DataService,InitializingBean {
 				Iterator<Ballot> ballots = Iterators.transform(results.iterator(), new Function<DynamoDbSecondaryIndex, Ballot>() {
 					@Override
 					public Ballot apply(DynamoDbSecondaryIndex input) {
-						return getBallot(input.getRefId());
+						Ballot b = getBallot(input.getRefId());
+						if (b == null) {
+							System.out.println("Removing invalid secondary index for "+ input.getRefId());
+							mapper(DynamoDbSecondaryIndex.class).delete(input);
+						}
+						return b;
 					}
 				});
 				Iterator<Ballot> filtered = Iterators.filter(ballots, Predicates.notNull());
@@ -277,6 +299,8 @@ public class DynamoDbDataService implements DataService,InitializingBean {
 		
 		if (criteria.getOwners().size() > 0) {
 			for (String owner : criteria.getOwners()) {
+				final List<String> missing = new ArrayList<String>();
+				
 				DynamoDbUser o = getUser(owner);
 				if (o.getBallotsIOwn() == null) continue;
 
@@ -289,9 +313,16 @@ public class DynamoDbDataService implements DataService,InitializingBean {
 							if (b != null) {
 								return !filteredCallback.apply(b);
 							} else {
+								missing.add(ballotId);
 								return false; // return false to keep iterating ddue to 'tryFind's usage
 							}
-						}}); 
+						}});
+				if (missing.size() > 0) {
+					System.out.println("Removing invalid owned ballots:" + missing + " for user " + owner);
+					o.removeBallotsIOwn(missing);
+					save(o);
+					missing.clear();
+				}
 			}
 			return;
 		}
@@ -356,6 +387,9 @@ public class DynamoDbDataService implements DataService,InitializingBean {
 
 	public boolean credentialsMatch(String emailAddress, String credentials) {
 		DynamoDbUser u = getUser(emailAddress);
+		if (u == null) {
+			return false;
+		}
 		try {
 			return hash(credentials).equals(u.getCredentials());
 		} catch (Exception e) { 

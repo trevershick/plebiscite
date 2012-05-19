@@ -1,6 +1,7 @@
 package org.trevershick.plebiscite.engine.impl;
 
 import java.security.SecureRandom;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -191,6 +192,9 @@ public class DynamoDbUser implements User {
 	}
 	public boolean hasPassword() {
 		return StringUtils.isNotBlank(credentials);
+	}
+	public void removeBallotsIOwn(Collection<String> missing) {
+		this.ballotsIOwn.removeAll(missing);
 	}
 	
 }

@@ -41,7 +41,9 @@ public class DataServiceBallotTest extends AWSTest {
 
 		svc.ballots(new BallotCriteria(), new Predicate<Ballot>() {
 			public boolean apply(Ballot input) {
-				svc.delete(input);
+				if (input.getOwner() != null && input.getOwner().contains("@pleb")) {
+					svc.delete(input);
+				}
 				return true;
 			}
 		});

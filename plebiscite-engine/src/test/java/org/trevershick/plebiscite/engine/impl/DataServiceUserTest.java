@@ -34,7 +34,9 @@ public class DataServiceUserTest extends AWSTest {
 		// remove all users that have a numeric @yahoo address.
 		svc.users(new Predicate<User>() {
 			public boolean apply(User input) {
-				if (input.getEmailAddress().matches("\\d+@yahoo\\.com")) {
+				if (input.getEmailAddress().matches("\\d+@yahoo\\.com")
+						|| input.getEmailAddress().matches("\\d+@plebiscite\\.com")
+						) {
 					svc.delete(input);
 				}
 				return true;

@@ -1,5 +1,6 @@
 package org.trevershick.plebiscite.engine.impl;
 
+import java.awt.datatransfer.DataFlavor;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -58,8 +59,11 @@ public class EngineImpl implements Engine, InitializingBean {
 	}
 
 	public User authenticate(String email, String credentials) {
-		return this.dataService.credentialsMatch(email, credentials) ? this.dataService
-				.getUser(email) : null;
+		if (this.dataService.credentialsMatch(email, credentials)) {
+			return dataService.getUser(email);
+		} else {
+			return null;
+		}
 	}
 
 	public Ballot createBallot(User owner, String title)
