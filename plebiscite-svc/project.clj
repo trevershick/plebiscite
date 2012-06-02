@@ -1,5 +1,5 @@
 (defproject plebiscite-svc "1.0.0-SNAPSHOT"
-  :description "FIXME: write description"
+  :description "Plebiscite Final Project"
   :aot [plebiscite.svc.core plebiscite.svc.engine]
   :dependencies [
 		[org.trevershick.plebiscite/plebiscite-engine "0.0.2.26-SNAPSHOT"]

@@ -10,32 +10,9 @@
 	(:import java.net.URLEncoder)
 )
 
-(defn test1 [& x] 
-	(html [:h1.first  "Foo"]
-	      [:h2#second "Bar"]
-	[:span {:class "foo"} (or x "no x")])
-	)
-
-(defn test2 [x req] 
-	{
-		:status 200
-	   	:headers {"Content-Type" "application/json"}
-	  	:body 
-			(json/encode {
-				:x (or x "no x") 
-				:z "pdq" 
-				:params (req :query-params)})
-	})
-
-(defn url-encode [x]
-	(. URLEncoder encode (.toString x)))
-	
-(defn linkable [value] 
-	{ :value (.toString value) :encoded (url-encode (.toString value))}
-	)
-
-
-(defn my-ballots [username password] 
+(defn 
+	^{:doc "Returns all of the ballots i own, username and password are required to auth with the Plebiscite engine"}
+	my-ballots [username password] 
 	(let [ 	
 		un (if (nil? username) "XXX" username)
 		pd (if (nil? password) "XXX" password)
@@ -49,7 +26,9 @@
 		:body (org.danlarkin.json/encode result) }
 	))
 
-(defn ballot-status [ballot-id username password]
+(defn 
+	^{:doc "Returns the status of the ballot identified by 'ballot-id'"}
+	ballot-status [ballot-id username password]
 	(let [ 	
 			un (if (nil? username) "XXX" username)
 			pd (if (nil? password) "XXX" password)
@@ -64,24 +43,27 @@
 	))
 
 
-
+;; Setup the API routes. This is for 'Ring'  Each URL/endpoints maps to 
+;; a function with parameters (optionally). All of these endpoints are
+;; prefixed with /api, @see main-routes below.
 (defroutes api-routes
-	(GET "/ballot/:id" [id :as r] (test2 id r))
+;; 	(GET "/ballot/:id" [id :as r] (test2 id r))
 	(GET "/my-ballots" {{username :u password :p} :params} (my-ballots username password))
 	(GET "/ballot-status/:ballot-id" 
 		{{username :u password :p id :ballot-id} :params } 
 		(ballot-status id username password))
 )
 
+;; Setup the main routes. This is required by Ring.
+;; This sets up the routes for the root context and delegates setting up the
+;; /api routes to the above function 'api-routes'
 (defroutes main-routes
 	(context "/api" [] api-routes)
-	(GET "/" [] "<h1>Hello World Wide Web!</h1>")
-	(GET "/test/" 	[] (test1))
-	(GET "/test/:id" [id] (test1 id))
+	(GET "/" [] "<h1>Test - It Works</h1>")
 	(route/resources "/")
 	(route/not-found "Page not found"))
 
-
+;; Define the 'var' app that Ring uses to handle the web requests
 (def app
   (handler/site main-routes))
 
