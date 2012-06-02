@@ -1,3 +1,5 @@
+plebiscite*.war
+update*.sh
 /pom.xml
 *jar
 /lib
