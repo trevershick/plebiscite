@@ -2,12 +2,6 @@
 	(:gen-class)
 	(:use 	[compojure.core]
 			[hiccup.core])
-  	(:require [compojure.handler :as handler]
-			[compojure.route :as route]
-			[ring.adapter.jetty :as jetty]
-			[org.danlarkin.json :as json]
-			[clojure.java.jmx :as jmx]
-			[clojure.contrib.singleton :as s])
 			
 	(comment (:import java.net.URLEncoder))
   	(:import org.springframework.context.support.ClassPathXmlApplicationContext)
