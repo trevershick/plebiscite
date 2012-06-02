@@ -7,8 +7,7 @@
 		[org.clojure/clojure-contrib "1.2.0"]
 		[compojure "1.0.1"]
 		[hiccup "0.3.8"]
-		[org.danlarkin/clojure-json "1.2-SNAPSHOT"]
-		[org.clojure/java.jmx "0.2.0"]]
+		[org.danlarkin/clojure-json "1.2-SNAPSHOT"]]
 	:dev-dependencies [[lein-ring "0.5.4"]]
 	
 	:ring {:handler plebiscite.svc.core/app}
