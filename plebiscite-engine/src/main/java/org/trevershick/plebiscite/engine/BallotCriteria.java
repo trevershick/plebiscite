@@ -6,6 +6,12 @@ import java.util.Set;
 
 import org.trevershick.plebiscite.model.BallotState;
 
+/**
+ * Used to search for ballots.  adding > 1 value to an attribute represents an 'or' condition like
+ * .addState(closed).addState(open) would be WHERE ballot.state IN (open,closed)
+ *  
+ * @author trevershick
+ */
 public class BallotCriteria {
 	private Set<BallotState> states = new HashSet<BallotState>();
 	private Set<String> owners = new HashSet<String>();

@@ -24,13 +24,19 @@ public class DynamoDbVote implements Vote {
 	private Integer version;
 	private Date when;
 	
+	/**
+	 * The string identifier (unique) of the ballot
+	 */
 	@DynamoDBHashKey(attributeName = "BallotId")
 	public String getBallotId() {
 		return ballotId;
 	}
 	
 	
-    
+    /**
+     * Used for optimistic locking by dynamodb
+     * @return
+     */
     @DynamoDBVersionAttribute(attributeName="Version")
     public Integer getVersion() {
     	return this.version;
@@ -100,13 +106,9 @@ public class DynamoDbVote implements Vote {
 		setType(yay);
 		return this;
 	}
-
-
-
+	
 	public Vote withRequired(boolean b) {
 		setRequired(b);
 		return this;
 	}
-    
-    
 }

@@ -1,6 +1,5 @@
 package org.trevershick.plebiscite.engine.impl;
 
-import java.awt.datatransfer.DataFlavor;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -15,7 +14,6 @@ import org.trevershick.plebiscite.engine.DataService;
 import org.trevershick.plebiscite.engine.EmailService;
 import org.trevershick.plebiscite.engine.Engine;
 import org.trevershick.plebiscite.engine.InvalidDataException;
-import org.trevershick.plebiscite.engine.QueueingService;
 import org.trevershick.plebiscite.engine.UserCriteria;
 import org.trevershick.plebiscite.model.Ballot;
 import org.trevershick.plebiscite.model.BallotState;
@@ -35,7 +33,6 @@ import com.google.common.collect.Maps;
 public class EngineImpl implements Engine, InitializingBean {
 	DataService dataService;
 	EmailService emailService;
-	QueueingService queueingService;
 
 	public void setDataService(DataService dataService) {
 		this.dataService = dataService;
@@ -45,14 +42,8 @@ public class EngineImpl implements Engine, InitializingBean {
 		this.emailService = emailService;
 	}
 
-	public void setQueueingService(QueueingService queueingService) {
-		this.queueingService = queueingService;
-	}
-
 	public void afterPropertiesSet() throws Exception {
 		Assert.notNull(dataService, "dataService has not been set on "
-				+ getClass().getSimpleName());
-		Assert.notNull(queueingService, "queueingService has not been set on "
 				+ getClass().getSimpleName());
 		Assert.notNull(emailService, "emailService has not been set on "
 				+ getClass().getSimpleName());
@@ -68,8 +59,6 @@ public class EngineImpl implements Engine, InitializingBean {
 
 	public Ballot createBallot(User owner, String title)
 			throws InvalidDataException {
-		// User user = dataService.getUser(owner.getEmailAddress());
-
 		Ballot b = dataService.createBallot();
 		b.setOwner(owner.getEmailAddress());
 		b.setTitle(title);
@@ -116,7 +105,7 @@ public class EngineImpl implements Engine, InitializingBean {
 	public User addUserToBallot(Ballot ballot, String emailAddress,
 			boolean required) throws AlreadyExistsException,
 			BallotCompletedException {
-		// Ballot ballot = getBallot(b.getId());
+
 		if (ballot.getState() != BallotState.Open
 				&& ballot.getState() != BallotState.Closed) {
 			throw new BallotCompletedException();
@@ -131,16 +120,11 @@ public class EngineImpl implements Engine, InitializingBean {
 			this.dataService.save(v);
 		}
 		return userToAdd;
-
-		// TODO - need to send email to the voter. t he email needs to be
-		// different if someone is
-		// registered vs not registered
 	}
 
 	// TODO - add security, only admin or the ballot owner can do this
 	public void removeUserFromBallot(Ballot ballot, String emailAddress)
 			throws BallotCompletedException {
-		// Ballot ballot = dataService.getBallot(b.getId());
 		if (ballot.getState().isComplete()) {
 			throw new BallotCompletedException();
 		}
@@ -153,11 +137,6 @@ public class EngineImpl implements Engine, InitializingBean {
 		if (vote != null) {
 			dataService.delete(vote);
 		}
-	}
-
-	public void processVote(Ballot ballot, String emailAddress, VoteType vote) {
-
-		throw new RuntimeException("processVote not implemented");
 	}
 
 	public void open(Ballot b, Map<String, Object> emailParams) {
@@ -266,7 +245,26 @@ public class EngineImpl implements Engine, InitializingBean {
 	}
 
 	public void processTimedOutBallots() {
-		throw new RuntimeException("processTimedOutBallot not implemented");
+		ballotsThatAreOpen(new Predicate<Ballot>() {
+			@Override
+			public boolean apply(Ballot ballot) {
+				final List<Vote> vs = new ArrayList<Vote>();
+				votes(ballot, new Predicate<Vote>() {
+					@Override
+					public boolean apply(Vote input) {
+						vs.add(input);
+						return true;
+					}
+				});
+				BallotState currentState = ballot.getState();
+				BallotState newState = ballot.tallyVotes(vs).getState();
+				if (newState.equals(currentState)) {
+					return true; // don't change the ballot's state
+				}
+				sendBallotStateChangeNotificationEmail(ballot, newState, currentState, new HashMap<String, Object>());
+				dataService.save(ballot);
+				return true;
+			}});
 	}
 
 	public void reactivate(User user) {
@@ -393,10 +391,7 @@ public class EngineImpl implements Engine, InitializingBean {
 	public void updateUser(User user) {
 		Preconditions.checkArgument(user != null
 				&& user.getEmailAddress() != null);
-		// User u = this.dataService.getUser(user.getEmailAddress());
-		// u.setAdmin(user.isAdmin());
-		// u.setServicesEnabled(user.isServicesEnabled());
-		// u.setSlug(user.getSlug());
+
 		this.dataService.save(user);
 	}
 

@@ -20,16 +20,46 @@ import com.google.common.base.Preconditions;
 @DynamoDBTable(tableName="Users")
 public class DynamoDbUser implements User {
 	String emailAddress;
+	/**
+	 * User password (encoded)
+	 */
 	String credentials;
+	/**
+	 * true if the user has actually registered
+	 */
 	boolean registered;
+	/**
+	 * unique per the user, this can be used to build up URLS
+	 */
 	String slug;
+	/**
+	 * True if the user has verified his/her email
+	 */
 	boolean emailVerified;
+	/**
+	 * A unique token tied to this user that can be used to help verify the user's email address
+	 */
 	String verificationToken;
+	/**
+	 * Status of the user
+	 */
 	UserStatus userStatus = UserStatus.Active;
+	/**
+	 * Are web services enabled for this user?
+	 */
 	boolean servicesEnabled;
+	
 	private Integer version;
+	
 	private boolean admin;
+	/**
+	 * A list of ballot identifiers that the user owns.  DynamoDb is a key/value store and doesn't support
+	 * secondary indexes so it's necessary to do this.
+	 */
 	private Set<String> ballotsIOwn = new HashSet<String>();
+	/**
+	 * A list of ballot identifiers that this user has voted on.
+	 */
 	private Set<String> votedOnBallots = new HashSet<String>();
 	
 	

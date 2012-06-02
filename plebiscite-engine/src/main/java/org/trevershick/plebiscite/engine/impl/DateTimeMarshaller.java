@@ -6,7 +6,12 @@ import java.util.Date;
 import java.util.logging.Logger;
 
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMarshaller;
-
+/**
+ * Dynamo mapper specific marshaler used to convert a Date object to and fro from the
+ * dynamo data store.
+ * @author trevershick
+ *
+ */
 public class DateTimeMarshaller implements DynamoDBMarshaller<Date> {
 	private static final String DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
 	Logger log = Logger.getLogger(DateTimeMarshaller.class.getName());

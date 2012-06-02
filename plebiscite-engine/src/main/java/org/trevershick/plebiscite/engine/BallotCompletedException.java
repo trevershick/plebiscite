@@ -9,4 +9,9 @@ package org.trevershick.plebiscite.engine;
  */
 public class BallotCompletedException extends Exception {
 
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 4966638261431163273L;
+
 }

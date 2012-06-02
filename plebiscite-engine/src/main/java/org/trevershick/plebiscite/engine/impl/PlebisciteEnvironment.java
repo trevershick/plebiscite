@@ -1,7 +1,13 @@
 package org.trevershick.plebiscite.engine.impl;
 
 
-
+/**
+ * Used as a simple object that provides a logical environment name that can be used
+ * to prefix tables or other string values with the logical name.  DynamoDb does not
+ * have a sandbox environment so you must use different table names per environment.
+ * 
+ * @author trevershick
+ */
 public class PlebisciteEnvironment {
 	enum Qualifier {
 		DEV,FUNC,PROD

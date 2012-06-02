@@ -12,7 +12,12 @@ import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMarshaller;
 import com.amazonaws.util.json.JSONArray;
 import com.amazonaws.util.json.JSONObject;
 import com.google.common.base.Throwables;
-
+/**
+ * Complex marshaler for DynamoDb that marshals out a list of {@link BallotClosePolicy} objects.
+ *
+ * @see DynamoDbBallot#getPolicies()
+ * @author trevershick
+ */
 public class PoliciesMarshaller implements DynamoDBMarshaller<Collection<BallotClosePolicy>> {
 
 	@Override
