@@ -1,16 +1,14 @@
 (ns plebiscite.svc.core
-  	(:gen-class)
-  	(:use [compojure.core]
-		[hiccup.core])
+  	(:gen-class :extends javax.servlet.http.HttpServlet)
+  	(:use compojure.core
+		ring.util.servlet
+		hiccup.core)
   	(:require [compojure.handler :as handler]
 			[compojure.route :as route]
-			[ring.adapter.jetty :as jetty]
 			[org.danlarkin.json :as json]
-			[clojure.java.jmx :as jmx]
 			[plebiscite.svc.engine :as e])
 	(:import java.net.URLEncoder)
 )
-
 
 (defn test1 [& x] 
 	(html [:h1.first  "Foo"]
@@ -88,6 +86,3 @@
   (handler/site main-routes))
 
 
-(defn -main []
-	(jetty/run-jetty main-routes {:port 8080})
-)
